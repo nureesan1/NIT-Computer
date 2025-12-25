@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskType, TaskStatus } from '../types';
 import { Plus, Check, Clock, MapPin, User, Calendar as CalendarIcon, Wrench, Monitor, FileText, Layers } from 'lucide-react';
-import { format, parseISO, isSameDay } from 'date-fns';
+// Fix: Removed parseISO from date-fns import as it was causing a module error
+import { format, isSameDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const WorkCalendar = () => {
@@ -138,9 +139,10 @@ const WorkCalendar = () => {
                 <div key={task.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-4 items-start md:items-center">
                     {/* Date Box */}
                     <div className="bg-slate-50 p-3 rounded-lg text-center min-w-[80px] border border-slate-100">
-                        <span className="block text-xs text-slate-500">{format(parseISO(task.startDate), 'MMM')}</span>
-                        <span className="block text-xl font-bold text-slate-800">{format(parseISO(task.startDate), 'dd')}</span>
-                        <span className="block text-xs text-slate-400">{format(parseISO(task.startDate), 'eee')}</span>
+                        {/* Fix: Replaced parseISO(task.startDate) with native new Date(task.startDate) to resolve module error */}
+                        <span className="block text-xs text-slate-500">{format(new Date(task.startDate), 'MMM')}</span>
+                        <span className="block text-xl font-bold text-slate-800">{format(new Date(task.startDate), 'dd')}</span>
+                        <span className="block text-xs text-slate-400">{format(new Date(task.startDate), 'eee')}</span>
                     </div>
 
                     {/* Content */}

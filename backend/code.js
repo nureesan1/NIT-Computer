@@ -1,13 +1,13 @@
 
 /**
- * NIT Computer Solution LTD. - Google Sheets Database API (Backend V2)
- * รองรับ: รายรับ-จ่าย, สต๊อกสินค้า, และการจัดการใบงาน (Repair/Installation/System)
+ * NIT Computer Solution LTD. - Google Sheets Database API (Backend V2.1)
+ * รองรับ: รายรับ-จ่าย, สต๊อกสินค้า, การจัดการใบงาน และโปรไฟล์บริษัท
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // กำหนดโครงสร้าง Headers ของแต่ละ Sheet ให้ตรงกับ Types ใน App
+  // กำหนดโครงสร้าง Headers ของแต่ละ Sheet
   const schema = {
     'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
@@ -22,9 +22,10 @@ function doGet(e) {
       'assignee', 
       'status', 
       'estimatedCost', 
-      'deposit',  // เพิ่มฟิลด์มัดจำ
-      'customer'  // เก็บเป็น JSON string
-    ]
+      'deposit', 
+      'customer' 
+    ],
+    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo']
   };
 
   const responseData = {};
@@ -61,7 +62,6 @@ function doPost(e) {
         deleteRow(ss, 'Products', 'id', data.id);
         break;
       case 'ADD_TASK':
-        // จัดการข้อมูลลูกค้าที่เป็น Object ให้เป็น String ก่อนลง Sheet
         if (data.customer && typeof data.customer === 'object') {
           data.customer = JSON.stringify(data.customer);
         }
@@ -69,6 +69,9 @@ function doPost(e) {
         break;
       case 'UPDATE_TASK_STATUS':
         updateRow(ss, 'Tasks', 'id', data.id, { status: data.status });
+        break;
+      case 'UPDATE_COMPANY_PROFILE':
+        saveCompanyProfile(ss, data);
         break;
       default:
         throw new Error('Unknown action: ' + action);
@@ -84,21 +87,14 @@ function doPost(e) {
   }
 }
 
-/**
- * Helper: สร้าง JSON Response พร้อมตั้งค่า CORS
- */
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Helper: ดึงข้อมูลจาก Sheet และแปลงเป็น Array of Objects
- */
 function getSheetData(ss, sheetName, defaultHeaders) {
   let sheet = ss.getSheetByName(sheetName);
   
-  // ถ้าไม่มี Sheet ให้สร้างใหม่พร้อม Header
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     sheet.appendRow(defaultHeaders);
@@ -116,21 +112,12 @@ function getSheetData(ss, sheetName, defaultHeaders) {
     const obj = {};
     headers.forEach((header, index) => {
       let value = row[index];
-      
-      // จัดการเรื่องวันที่
       if (value instanceof Date) {
         value = Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
       }
-      
-      // ตรวจสอบว่าเป็น JSON String หรือไม่ (สำหรับข้อมูล Customer)
       if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
-        try { 
-          value = JSON.parse(value); 
-        } catch(e) {
-          // ถ้า parse ไม่ได้ให้ใช้ค่า string เดิม
-        }
+        try { value = JSON.parse(value); } catch(e) {}
       }
-      
       obj[header] = value;
     });
     return obj;
@@ -139,32 +126,21 @@ function getSheetData(ss, sheetName, defaultHeaders) {
   return data;
 }
 
-/**
- * Helper: เพิ่มแถวข้อมูลใหม่
- */
 function appendRow(ss, sheetName, dataObj) {
   const sheet = ss.getSheetByName(sheetName);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
   const row = headers.map(header => {
     const val = dataObj[header];
-    if (val === undefined || val === null) return '';
-    // ถ้าเป็น Object (เช่น customer) ให้แปลงเป็น JSON String
-    return (typeof val === 'object') ? JSON.stringify(val) : val;
+    return (typeof val === 'object' && val !== null) ? JSON.stringify(val) : val || '';
   });
-  
   sheet.appendRow(row);
 }
 
-/**
- * Helper: อัปเดตข้อมูลในแถวที่ระบุ
- */
 function updateRow(ss, sheetName, keyField, keyValue, newData) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const keyIndex = headers.indexOf(keyField);
-  
   if (keyIndex === -1) return;
   
   for (let i = 1; i < data.length; i++) {
@@ -172,10 +148,7 @@ function updateRow(ss, sheetName, keyField, keyValue, newData) {
       headers.forEach((header, colIndex) => {
         if (newData[header] !== undefined) {
            let val = newData[header];
-           if (typeof val === 'object' && val !== null) {
-             val = JSON.stringify(val);
-           }
-           sheet.getRange(i + 1, colIndex + 1).setValue(val);
+           sheet.getRange(i + 1, colIndex + 1).setValue(typeof val === 'object' ? JSON.stringify(val) : val);
         }
       });
       break;
@@ -183,21 +156,37 @@ function updateRow(ss, sheetName, keyField, keyValue, newData) {
   }
 }
 
-/**
- * Helper: ลบแถวข้อมูล
- */
 function deleteRow(ss, sheetName, keyField, keyValue) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const keyIndex = headers.indexOf(keyField);
-  
   if (keyIndex === -1) return;
-  
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][keyIndex]) === String(keyValue)) {
       sheet.deleteRow(i + 1);
       break;
     }
+  }
+}
+
+/**
+ * บันทึกโปรไฟล์บริษัท (มีเพียงแถวเดียวต่อจาก Header)
+ */
+function saveCompanyProfile(ss, dataObj) {
+  let sheet = ss.getSheetByName('CompanyProfile');
+  const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo'];
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('CompanyProfile');
+    sheet.appendRow(headers);
+  }
+  
+  const row = headers.map(h => dataObj[h] || '');
+  
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, 1, headers.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
   }
 }

@@ -78,6 +78,14 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
         setTransactions(data.transactions || []);
         setProducts(data.products || []);
         setTasks(data.tasks || []);
+        
+        // Load company profile from sheets if available
+        if (data.companyprofile && data.companyprofile.length > 0) {
+          const profile = data.companyprofile[0];
+          setCompanyProfile(profile);
+          localStorage.setItem('company_profile', JSON.stringify(profile));
+        }
+        
         setIsDbConnected(true);
       }
       setIsLoading(false);
@@ -93,6 +101,8 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   const updateCompanyProfile = (profile: CompanyProfile) => {
     setCompanyProfile(profile);
     localStorage.setItem('company_profile', JSON.stringify(profile));
+    // Sync with Sheets
+    api.updateCompanyProfile(profile);
   };
 
   const login = (password: string) => {
@@ -115,7 +125,6 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     return await loadData();
   };
 
-  // Optimistic Handlers
   const addTransaction = (t: Omit<Transaction, 'id'>) => {
     const newT = { ...t, id: Math.random().toString(36).substr(2, 9) };
     setTransactions(prev => [newT, ...prev]);

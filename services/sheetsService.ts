@@ -1,4 +1,5 @@
-import { Transaction, Product, Task } from "../types";
+
+import { Transaction, Product, Task, CompanyProfile } from "../types";
 
 const STORAGE_KEY = 'nit_sheet_api_url';
 const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbz4qDcwNjTI549s645lW2PVwmPDgALww70yewsdkRJAEFmsBMJpxWEWEHw5HqaOiMlW2A/exec';
@@ -53,4 +54,5 @@ export const api = {
   deleteProduct: (id: string) => sendRequest('DELETE_PRODUCT', { id }),
   addTask: (t: Task) => sendRequest('ADD_TASK', t),
   updateTaskStatus: (id: string, status: string) => sendRequest('UPDATE_TASK_STATUS', { id, status }),
+  updateCompanyProfile: (profile: CompanyProfile) => sendRequest('UPDATE_COMPANY_PROFILE', profile),
 };
