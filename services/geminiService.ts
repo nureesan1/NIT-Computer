@@ -1,21 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { Transaction, Product, Task } from "../types";
 
-const initGenAI = () => {
-  if (!process.env.API_KEY) {
-    console.warn("API_KEY not found in environment variables.");
-    return null;
-  }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
-};
-
 export const generateBusinessInsight = async (
   transactions: Transaction[],
   products: Product[],
   tasks: Task[]
 ): Promise<string> => {
-  const ai = initGenAI();
-  if (!ai) return "กรุณาตั้งค่า API Key เพื่อใช้งานระบบวิเคราะห์อัจฉริยะ (AI Insight)";
+  if (!process.env.API_KEY) {
+    return "กรุณาตั้งค่า API_KEY ในระบบเพื่อใช้งาน AI Insight";
+  }
+
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   // Prepare a summary of data to send to the model
   const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.amount, 0);
@@ -37,7 +32,7 @@ export const generateBusinessInsight = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text || "ไม่สามารถวิเคราะห์ข้อมูลได้ในขณะนี้";
