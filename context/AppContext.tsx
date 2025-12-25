@@ -25,7 +25,7 @@ const MOCK_PRODUCTS: Product[] = [
 
 const MOCK_TASKS: Task[] = [
   { 
-    id: '1', 
+    id: 'JOB-2024-8192', 
     type: 'REPAIR', 
     title: 'ซ่อม Notebook เปิดไม่ติด', 
     startDate: '2023-10-28', 
@@ -53,6 +53,7 @@ interface AppContextType {
   deleteProduct: (id: string) => void;
   tasks: Task[];
   addTask: (t: Omit<Task, 'id'>) => void;
+  updateTask: (id: string, t: Partial<Task>) => void;
   updateTaskStatus: (id: string, status: Task['status']) => void;
   configDatabase: (url: string) => Promise<boolean>;
 }
@@ -151,9 +152,20 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   };
 
   const addTask = (t: Omit<Task, 'id'>) => {
-    const newT = { ...t, id: Math.random().toString(36).substr(2, 9) };
+    const year = new Date().getFullYear();
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const newId = `JOB-${year}-${randomNum}`;
+    const newT = { ...t, id: newId };
     setTasks(prev => [...prev, newT]);
     api.addTask(newT as Task);
+  };
+
+  const updateTask = (id: string, t: Partial<Task>) => {
+    setTasks(prev => prev.map(task => task.id === id ? { ...task, ...t } : task));
+    // Here we'd typically have a generic updateTask api call
+    // For now, since our backend is simple, we might need to extend it.
+    // However, for this MVP we update local state which handles immediate UI.
+    // In a production app, we'd sync back to Google Sheets.
   };
 
   const updateTaskStatus = (id: string, status: Task['status']) => {
@@ -166,7 +178,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
       user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
       transactions, addTransaction,
       products, addProduct, updateProduct, deleteProduct,
-      tasks, addTask, updateTaskStatus,
+      tasks, addTask, updateTask, updateTaskStatus,
       configDatabase
     }}>
       {children}

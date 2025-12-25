@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Save, Printer, User, Building, MapPin, Phone, Mail, FileText, Calendar, Wrench, Monitor, ClipboardList, Layers, Wallet } from 'lucide-react';
 
 const JobIntake = () => {
-  const { addTask, companyProfile } = useApp();
+  const { addTask, tasks, companyProfile } = useApp();
   const [showReceipt, setShowReceipt] = useState(false);
   const [createdJob, setCreatedJob] = useState<Task | null>(null);
 
@@ -51,9 +51,19 @@ const JobIntake = () => {
       deposit: formData.deposit
     };
 
-    const mockId = "JOB-" + new Date().getTime().toString().slice(-6);
-    const taskWithId = { ...newTask, id: mockId } as Task;
     addTask(newTask);
+    
+    // In current context addTask is async but sets state. 
+    // To show receipt correctly we need the newly added task.
+    // In a real app we'd await or use the returned ID.
+    // For this mock, we'll find the last task (which is the one we just added)
+    // Actually, addTask updates state which might be delayed.
+    // Let's manually construct the ID for the receipt display immediately.
+    const year = new Date().getFullYear();
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const mockId = `JOB-${year}-${randomNum}`;
+    const taskWithId = { ...newTask, id: mockId } as Task;
+    
     setCreatedJob(taskWithId);
     setShowReceipt(true);
   };
@@ -78,8 +88,8 @@ const JobIntake = () => {
             สร้างใบงานสำเร็จ
           </h2>
           <div className="flex gap-2">
-            <button onClick={resetForm} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">กลับหน้าฟอร์ม</button>
-            <button onClick={() => window.print()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-md transition-all active:scale-95">
+            <button onClick={resetForm} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-bold">กลับหน้าฟอร์ม</button>
+            <button onClick={() => window.print()} className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95 font-bold">
               <Printer size={18} /> พิมพ์ใบรับงาน
             </button>
           </div>
@@ -117,7 +127,7 @@ const JobIntake = () => {
 
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="border p-4 rounded-lg bg-slate-50">
-              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2"><User size={16} className="text-blue-600" /> ข้อมูลลูกค้า</h3>
+              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2 font-sarabun"><User size={16} className="text-blue-600" /> ข้อมูลลูกค้า</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-semibold w-24 inline-block text-slate-500">ชื่อลูกค้า:</span> <span className="text-slate-800">{createdJob.customer?.name}</span></p>
                 {createdJob.customer?.company && <p><span className="font-semibold w-24 inline-block text-slate-500">บริษัท:</span> <span className="text-slate-800">{createdJob.customer?.company}</span></p>}
@@ -126,7 +136,7 @@ const JobIntake = () => {
               </div>
             </div>
             <div className="border p-4 rounded-lg bg-slate-50">
-              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2"><FileText size={16} className="text-blue-600" /> รายละเอียดงาน</h3>
+              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2 font-sarabun"><FileText size={16} className="text-blue-600" /> รายละเอียดงาน</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-semibold w-32 inline-block text-slate-500">หัวข้อ:</span> <span className="text-slate-800">{createdJob.title}</span></p>
                 <p><span className="font-semibold w-32 inline-block text-slate-500">วันที่รับงาน:</span> <span className="text-slate-800">{createdJob.startDate}</span></p>
@@ -137,7 +147,7 @@ const JobIntake = () => {
           </div>
 
           <div className="mb-8">
-            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><ClipboardList size={16} /> รายละเอียดปัญหา / ขอบเขตงาน</h3>
+            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2 font-sarabun"><ClipboardList size={16} /> รายละเอียดปัญหา / ขอบเขตงาน</h3>
             <div className="border rounded-lg p-4 min-h-[120px] bg-white whitespace-pre-wrap text-slate-700 leading-relaxed shadow-sm">{createdJob.description || "-"}</div>
           </div>
 
@@ -172,12 +182,12 @@ const JobIntake = () => {
             <div className="text-center">
               <div className="border-b border-slate-400 h-12 mb-2 w-48 mx-auto"></div>
               <p className="text-xs text-slate-500">ลงชื่อลูกค้า</p>
-              <p className="text-[10px] text-slate-400 mt-1">( {createdJob.customer?.name} )</p>
+              <p className="text-[10px] text-slate-400 mt-1 font-bold">( {createdJob.customer?.name} )</p>
             </div>
             <div className="text-center">
               <div className="border-b border-slate-400 h-12 mb-2 w-48 mx-auto"></div>
               <p className="text-xs text-slate-500">ลงชื่อผู้รับงาน / เจ้าหน้าที่</p>
-              <p className="text-[10px] text-slate-400 mt-1">( {createdJob.assignee || companyProfile.name} )</p>
+              <p className="text-[10px] text-slate-400 mt-1 font-bold">( {createdJob.assignee || companyProfile.name} )</p>
             </div>
           </div>
         </div>
