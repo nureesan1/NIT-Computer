@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { generateBusinessInsight } from '../services/geminiService';
@@ -35,7 +36,7 @@ const Dashboard = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">ภาพรวมระบบ (Dashboard)</h2>
-          <p className="text-slate-500">สรุปข้อมูลสำคัญของ NIT Computer Solution</p>
+          <p className="text-slate-500">สรุปข้อมูลสำคัญของ NIT Consulting Solution LTD.</p>
         </div>
         <button 
           onClick={handleGenerateInsight}

@@ -4,7 +4,7 @@ import { Transaction, Product, Task, User, UserRole, CompanyProfile } from '../t
 import { api, fetchInitialData, isSheetsConfigured, saveApiUrl } from '../services/sheetsService';
 
 const DEFAULT_COMPANY: CompanyProfile = {
-  name: 'NIT Computer Solution LTD.',
+  name: 'NIT Consulting Solution LTD.',
   address: '123 Tech Park, Bangkok 10250',
   phone: '02-123-4567',
   email: 'support@nit.co.th',
