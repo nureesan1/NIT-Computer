@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Transaction, TransactionType, PaymentMethod } from '../types';
@@ -14,7 +15,7 @@ const Finance = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     type: 'INCOME',
     paymentMethod: 'CASH',
-    category: 'General'
+    category: 'งานซ่อม'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ const Finance = () => {
         date: format(new Date(), 'yyyy-MM-dd'),
         type: 'INCOME',
         paymentMethod: 'CASH', 
-        category: 'General',
+        category: 'งานซ่อม',
         description: '',
         amount: 0
       });
@@ -37,6 +38,17 @@ const Finance = () => {
     if (activeTab === 'ALL') return true;
     return t.type === activeTab;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const categories = [
+    'งานซ่อม',
+    'งานติดตั้ง',
+    'งานระบบ',
+    'ค่าใช้จ่ายทั่วไป',
+    'ค่าไฟ',
+    'ค่าอินเตอร์เน็ต',
+    'ค่าน้ำ',
+    'ค่าเช่า'
+  ];
 
   return (
     <div className="space-y-6">
@@ -121,20 +133,15 @@ const Finance = () => {
             </div>
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
-                <input 
-                    type="text"
-                    list="categories" 
-                    value={formData.category || ''}
+                <select 
+                    value={formData.category || 'งานซ่อม'}
                     onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none border"
-                />
-                <datalist id="categories">
-                    <option value="Service" />
-                    <option value="Product Sales" />
-                    <option value="Utility" />
-                    <option value="Salary" />
-                    <option value="General" />
-                </datalist>
+                    className="w-full border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none border bg-white"
+                >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                </select>
             </div>
             <div className="md:col-span-3 flex justify-end gap-3 mt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">ยกเลิก</button>

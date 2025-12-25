@@ -14,7 +14,8 @@ import {
   LogOut,
   Database,
   CloudOff,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -29,6 +30,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     { icon: <CalendarDays size={20} />, label: 'ตารางงาน', path: '/calendar', allowed: [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.MANAGER] },
     { icon: <Wallet size={20} />, label: 'การเงิน (รายรับ-จ่าย)', path: '/finance', allowed: [UserRole.ADMIN, UserRole.ACCOUNTING, UserRole.MANAGER] },
     { icon: <Package size={20} />, label: 'สต๊อกสินค้า', path: '/inventory', allowed: [UserRole.ADMIN, UserRole.STOCK, UserRole.MANAGER] },
+    { icon: <Building2 size={20} />, label: 'โปรไฟล์บริษัท', path: '/company', allowed: [UserRole.ADMIN, UserRole.MANAGER] },
     { icon: <Settings size={20} />, label: 'ตั้งค่าระบบ', path: '/settings', allowed: [UserRole.ADMIN] },
   ];
 
@@ -44,7 +46,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar - Hidden on Print */}
+      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -97,7 +99,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             </div>
         </div>
 
-        {/* Role Switcher & User Profile */}
+        {/* Role Switcher */}
         <div className="p-4 border-t border-slate-700 bg-slate-800">
           <div className="flex items-center justify-between mb-3">
              <div className="flex items-center gap-3">
@@ -109,16 +111,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                   <p className="text-xs text-blue-300">{user.role}</p>
                 </div>
              </div>
-             <button 
-               onClick={logout} 
-               className="text-slate-400 hover:text-white hover:bg-slate-700 p-1.5 rounded-lg transition-colors lg:hidden" 
-               title="Logout"
-             >
-                <LogOut size={18} />
-             </button>
           </div>
-          
-          <div className="text-xs text-slate-500 mb-2 font-bold uppercase tracking-wider">Switch Role (Demo):</div>
           <select 
             value={user.role}
             onChange={(e) => switchRole(e.target.value as UserRole)}
@@ -133,27 +126,17 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden print:h-auto print:overflow-visible">
-        {/* Header - Hidden on Print */}
         <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 print:hidden">
-          {/* Left Side: Menu Toggle (Mobile) + Date */}
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden text-slate-600 hover:text-blue-600 p-2"
-            >
-              <Menu size={24} />
-            </button>
+            <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-600 p-2"><Menu size={24} /></button>
             <div className="text-slate-400 text-sm hidden sm:block font-medium">
               {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
-
-          {/* Right Side: Logout Button with Text */}
           <div className="flex items-center">
             <button 
               onClick={logout}
               className="flex items-center gap-2 text-slate-500 hover:text-red-600 transition-all text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
-              title="ออกจากระบบ"
             >
               <span className="hidden xs:inline">ออกจากระบบ</span>
               <LogOut size={18} />
@@ -161,7 +144,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           </div>
         </header>
 
-        {/* Page Content */}
         <div className="flex-1 overflow-auto p-4 lg:p-8 print:p-0 print:overflow-visible">
           {children}
         </div>

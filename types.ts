@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'Admin',
   ACCOUNTING = 'Accounting',
@@ -30,7 +31,7 @@ export interface Product {
   minStockThreshold: number;
 }
 
-export type TaskType = 'REPAIR' | 'INSTALLATION';
+export type TaskType = 'REPAIR' | 'INSTALLATION' | 'SYSTEM';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
 
 export interface Customer {
@@ -45,18 +46,29 @@ export interface Task {
   id: string;
   type: TaskType;
   title: string;
-  description?: string; // Detailed description of the job/issue
-  startDate: string; // ISO - Intake Date or Start Date
-  endDate?: string; // ISO - Return Date or Install Date
+  description?: string; 
+  startDate: string; 
+  endDate?: string; 
   location?: string;
-  assignee?: string; // Technician Name
+  assignee?: string; 
   status: TaskStatus;
   customer?: Customer;
   estimatedCost?: number;
+  deposit?: number;
 }
 
 export interface User {
   id: string;
   name: string;
   role: UserRole;
+}
+
+export interface CompanyProfile {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  taxId: string;
+  website: string;
+  logo?: string;
 }

@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskType, TaskStatus } from '../types';
-import { Plus, Check, Clock, MapPin, User, Calendar as CalendarIcon, Wrench, Monitor, FileText } from 'lucide-react';
+import { Plus, Check, Clock, MapPin, User, Calendar as CalendarIcon, Wrench, Monitor, FileText, Layers } from 'lucide-react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const WorkCalendar = () => {
   const { tasks, addTask, updateTaskStatus } = useApp();
   const [showForm, setShowForm] = useState(false);
-  const [filterType, setFilterType] = useState<'ALL' | 'REPAIR' | 'INSTALLATION'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | TaskType>('ALL');
   const navigate = useNavigate();
 
   // New Task Form
@@ -37,6 +38,15 @@ const WorkCalendar = () => {
         default: return 'bg-slate-100';
     }
   };
+
+  const getTypeInfo = (type: TaskType) => {
+    switch(type) {
+      case 'REPAIR': return { label: 'งานซ่อม', icon: <Wrench size={10} />, color: 'bg-orange-100 text-orange-700' };
+      case 'INSTALLATION': return { label: 'งานติดตั้ง', icon: <Layers size={10} />, color: 'bg-blue-100 text-blue-700' };
+      case 'SYSTEM': return { label: 'งานระบบ', icon: <Monitor size={10} />, color: 'bg-purple-100 text-purple-700' };
+      default: return { label: type, icon: <FileText size={10} />, color: 'bg-slate-100 text-slate-700' };
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -76,6 +86,7 @@ const WorkCalendar = () => {
                 <select className="w-full border p-2 rounded bg-white" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as TaskType})}>
                     <option value="REPAIR">งานซ่อม</option>
                     <option value="INSTALLATION">งานติดตั้ง</option>
+                    <option value="SYSTEM">งานระบบ</option>
                 </select>
              </div>
              <div>
@@ -104,84 +115,87 @@ const WorkCalendar = () => {
 
       {/* Type Filter */}
       <div className="flex gap-2">
-        {(['ALL', 'REPAIR', 'INSTALLATION'] as const).map(type => (
+        {(['ALL', 'REPAIR', 'INSTALLATION', 'SYSTEM'] as const).map(type => (
             <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                     filterType === type 
                     ? 'bg-blue-600 text-white border-blue-600' 
                     : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                 }`}
             >
-                {type === 'ALL' ? 'ทั้งหมด' : type === 'REPAIR' ? 'งานซ่อม' : 'งานติดตั้ง'}
+                {type === 'ALL' ? 'ทั้งหมด' : type === 'REPAIR' ? 'งานซ่อม' : type === 'INSTALLATION' ? 'งานติดตั้ง' : 'งานระบบ'}
             </button>
         ))}
       </div>
 
       {/* Task List (Agenda View) */}
       <div className="grid gap-4">
-        {filteredTasks.map(task => (
-            <div key={task.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-4 items-start md:items-center">
-                {/* Date Box */}
-                <div className="bg-slate-50 p-3 rounded-lg text-center min-w-[80px] border border-slate-100">
-                    <span className="block text-xs text-slate-500">{format(parseISO(task.startDate), 'MMM')}</span>
-                    <span className="block text-xl font-bold text-slate-800">{format(parseISO(task.startDate), 'dd')}</span>
-                    <span className="block text-xs text-slate-400">{format(parseISO(task.startDate), 'eee')}</span>
-                </div>
+        {filteredTasks.map(task => {
+            const typeInfo = getTypeInfo(task.type);
+            return (
+                <div key={task.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    {/* Date Box */}
+                    <div className="bg-slate-50 p-3 rounded-lg text-center min-w-[80px] border border-slate-100">
+                        <span className="block text-xs text-slate-500">{format(parseISO(task.startDate), 'MMM')}</span>
+                        <span className="block text-xl font-bold text-slate-800">{format(parseISO(task.startDate), 'dd')}</span>
+                        <span className="block text-xs text-slate-400">{format(parseISO(task.startDate), 'eee')}</span>
+                    </div>
 
-                {/* Content */}
-                <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${task.type === 'REPAIR' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
-                            {task.type === 'REPAIR' ? <Wrench size={10} /> : <Monitor size={10} />}
-                            {task.type}
+                    {/* Content */}
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${typeInfo.color}`}>
+                                {typeInfo.icon}
+                                {typeInfo.label}
+                            </span>
+                            <h4 className="font-bold text-slate-800">{task.title}</h4>
+                        </div>
+                        
+                        {task.description && <p className="text-sm text-slate-600 mt-1 line-clamp-1 italic">{task.description}</p>}
+                        
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 mt-2">
+                             {task.customer && (
+                                <div className="flex items-center gap-1 text-blue-600 font-medium">
+                                    <User size={14} /> {task.customer.name}
+                                </div>
+                            )}
+                            {task.location && (
+                                <div className="flex items-center gap-1">
+                                    <MapPin size={14} /> {task.location}
+                                </div>
+                            )}
+                            {task.assignee && (
+                                <div className="flex items-center gap-1">
+                                    <User size={14} /> {task.assignee}
+                                </div>
+                            )}
+                            {task.endDate && (
+                                <div className="flex items-center gap-1 text-slate-400">
+                                    <Clock size={14} /> กำหนดเสร็จ: {task.endDate}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Status & Actions */}
+                    <div className="flex flex-col items-end gap-2 min-w-[140px]">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
+                            {task.status.replace('_', ' ')}
                         </span>
-                        <h4 className="font-bold text-slate-800">{task.title}</h4>
-                    </div>
-                    
-                    {task.description && <p className="text-sm text-slate-600 mt-1 line-clamp-1">{task.description}</p>}
-                    
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 mt-2">
-                         {task.customer && (
-                            <div className="flex items-center gap-1 text-blue-600 font-medium">
-                                <User size={14} /> {task.customer.name}
-                            </div>
-                        )}
-                        {task.location && (
-                            <div className="flex items-center gap-1">
-                                <MapPin size={14} /> {task.location}
-                            </div>
-                        )}
-                        {task.assignee && (
-                            <div className="flex items-center gap-1">
-                                <User size={14} /> {task.assignee}
-                            </div>
-                        )}
-                        {task.endDate && (
-                            <div className="flex items-center gap-1 text-slate-400">
-                                <Clock size={14} /> ถึง {task.endDate}
-                            </div>
+                        {task.status !== 'COMPLETED' && task.status !== 'CANCELED' && (
+                            <button 
+                                onClick={() => updateTaskStatus(task.id, 'COMPLETED')}
+                                className="text-xs flex items-center gap-1 text-green-600 hover:text-green-800 font-medium p-1 hover:bg-green-50 rounded"
+                            >
+                                <Check size={14} /> ทำเสร็จแล้ว
+                            </button>
                         )}
                     </div>
                 </div>
-
-                {/* Status & Actions */}
-                <div className="flex flex-col items-end gap-2 min-w-[140px]">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                    </span>
-                    {task.status !== 'COMPLETED' && task.status !== 'CANCELED' && (
-                        <button 
-                            onClick={() => updateTaskStatus(task.id, 'COMPLETED')}
-                            className="text-xs flex items-center gap-1 text-green-600 hover:text-green-800 font-medium"
-                        >
-                            <Check size={14} /> Mark Complete
-                        </button>
-                    )}
-                </div>
-            </div>
-        ))}
+            );
+        })}
         {filteredTasks.length === 0 && (
             <div className="text-center py-10 bg-white rounded-xl border border-dashed border-slate-300">
                 <CalendarIcon size={48} className="mx-auto text-slate-300 mb-2" />

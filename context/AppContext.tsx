@@ -1,18 +1,23 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
-import { Transaction, Product, Task, User, UserRole } from '../types';
-import { api, fetchInitialData, isSheetsConfigured, saveApiUrl, getApiUrl } from '../services/sheetsService';
 
-// Mock Data (Fallback)
+import React, { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
+import { Transaction, Product, Task, User, UserRole, CompanyProfile } from '../types';
+import { api, fetchInitialData, isSheetsConfigured, saveApiUrl } from '../services/sheetsService';
+
+const DEFAULT_COMPANY: CompanyProfile = {
+  name: 'NIT Computer Solution LTD.',
+  address: '123 Tech Park, Bangkok 10250',
+  phone: '02-123-4567',
+  email: 'support@nit.co.th',
+  taxId: '0105551234567',
+  website: 'www.nit.co.th'
+};
+
 const MOCK_TRANSACTIONS: Transaction[] = [
   { id: '1', date: '2023-10-25', description: 'ซ่อมคอมพิวเตอร์', category: 'Service', amount: 1500, type: 'INCOME', paymentMethod: 'CASH' },
-  { id: '2', date: '2023-10-26', description: 'ค่าอินเทอร์เน็ต', category: 'Utility', amount: 590, type: 'EXPENSE', paymentMethod: 'TRANSFER' },
-  { id: '3', date: '2023-10-27', description: 'ติดตั้งกล้องวงจรปิด', category: 'Service', amount: 8500, type: 'INCOME', paymentMethod: 'TRANSFER' },
 ];
 
 const MOCK_PRODUCTS: Product[] = [
   { id: '1', code: 'P001', name: 'สาย LAN CAT6', cost: 100, quantity: 50, unit: 'เมตร', minStockThreshold: 20 },
-  { id: '2', code: 'P002', name: 'Router WiFi 6', cost: 1200, quantity: 5, unit: 'เครื่อง', minStockThreshold: 5 },
-  { id: '3', code: 'P003', name: 'หัว RJ45', cost: 5, quantity: 100, unit: 'หัว', minStockThreshold: 50 },
 ];
 
 const MOCK_TASKS: Task[] = [
@@ -20,33 +25,10 @@ const MOCK_TASKS: Task[] = [
     id: '1', 
     type: 'REPAIR', 
     title: 'ซ่อม Notebook เปิดไม่ติด', 
-    description: 'เครื่องเปิดไม่ติด ไฟเข้าแต่ภาพไม่ขึ้น',
     startDate: '2023-10-28', 
-    endDate: '2023-10-30', 
     status: 'IN_PROGRESS', 
     assignee: 'ช่างหนึ่ง',
-    customer: {
-      name: 'คุณสมชาย ใจดี',
-      phone: '081-234-5678',
-      address: '123 ถ.สุขุมวิท'
-    },
-    estimatedCost: 1500
-  },
-  { 
-    id: '2', 
-    type: 'INSTALLATION', 
-    title: 'ติดตั้งระบบ Network', 
-    description: 'เดินสาย LAN 10 จุด และติดตั้ง Access Point',
-    startDate: '2023-11-01', 
-    location: 'ตึก ABC ชั้น 5', 
-    assignee: 'ทีม A', 
-    status: 'PENDING',
-    customer: {
-      name: 'บริษัท ABC จำกัด',
-      phone: '02-999-9999',
-      company: 'ABC Co., Ltd.'
-    },
-    estimatedCost: 12000
+    customer: { name: 'คุณสมชาย ใจดี', phone: '081-234-5678' }
   },
 ];
 
@@ -55,9 +37,11 @@ interface AppContextType {
   isAuthenticated: boolean;
   isDbConnected: boolean;
   isLoading: boolean;
+  companyProfile: CompanyProfile;
   login: (password: string) => boolean;
   logout: () => void;
   switchRole: (role: UserRole) => void;
+  updateCompanyProfile: (profile: CompanyProfile) => void;
   transactions: Transaction[];
   addTransaction: (t: Omit<Transaction, 'id'>) => void;
   products: Product[];
@@ -75,13 +59,14 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children?: ReactNode }): ReactElement => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User>({ id: 'u1', name: 'Demo User', role: UserRole.ADMIN });
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() => {
+    const saved = localStorage.getItem('company_profile');
+    return saved ? JSON.parse(saved) : DEFAULT_COMPANY;
+  });
   
-  // Data States
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  
-  // System States
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -94,30 +79,20 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
         setProducts(data.products || []);
         setTasks(data.tasks || []);
         setIsDbConnected(true);
-      } else {
-        // Fallback to mock if fetch fails
-        setIsDbConnected(false); 
       }
       setIsLoading(false);
       return true;
-    } else {
-      setIsDbConnected(false);
-      return false;
     }
+    return false;
   };
 
-  // Initialize Data
   useEffect(() => {
     loadData();
   }, []);
 
-  const configDatabase = async (url: string) => {
-    saveApiUrl(url);
-    if (!url) {
-      setIsDbConnected(false);
-      return true;
-    }
-    return await loadData();
+  const updateCompanyProfile = (profile: CompanyProfile) => {
+    setCompanyProfile(profile);
+    localStorage.setItem('company_profile', JSON.stringify(profile));
   };
 
   const login = (password: string) => {
@@ -128,42 +103,45 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     return false;
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
+  const logout = () => setIsAuthenticated(false);
+  const switchRole = (role: UserRole) => setUser(prev => ({ ...prev, role }));
+
+  const configDatabase = async (url: string) => {
+    saveApiUrl(url);
+    if (!url) {
+      setIsDbConnected(false);
+      return true;
+    }
+    return await loadData();
   };
 
-  const switchRole = (role: UserRole) => {
-    setUser(prev => ({ ...prev, role }));
-  };
-
-  // Optimistic Updates
-
+  // Optimistic Handlers
   const addTransaction = (t: Omit<Transaction, 'id'>) => {
-    const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) };
-    setTransactions(prev => [newTransaction, ...prev]);
-    api.addTransaction(newTransaction as Transaction);
+    const newT = { ...t, id: Math.random().toString(36).substr(2, 9) };
+    setTransactions(prev => [newT, ...prev]);
+    api.addTransaction(newT as Transaction);
   };
 
   const addProduct = (p: Omit<Product, 'id'>) => {
-    const newProduct = { ...p, id: Math.random().toString(36).substr(2, 9) };
-    setProducts(prev => [...prev, newProduct]);
-    api.addProduct(newProduct as Product);
+    const newP = { ...p, id: Math.random().toString(36).substr(2, 9) };
+    setProducts(prev => [...prev, newP]);
+    api.addProduct(newP as Product);
   };
 
   const updateProduct = (id: string, p: Partial<Product>) => {
-    setProducts(prev => prev.map(item => item.id === id ? { ...item, ...p } : item));
+    setProducts(prev => prev.map(i => i.id === id ? { ...i, ...p } : i));
     api.updateProduct({ id, ...p });
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(item => item.id !== id));
+    setProducts(prev => prev.filter(i => i.id !== id));
     api.deleteProduct(id);
   };
 
   const addTask = (t: Omit<Task, 'id'>) => {
-    const newTask = { ...t, id: Math.random().toString(36).substr(2, 9) };
-    setTasks(prev => [...prev, newTask]);
-    api.addTask(newTask as Task);
+    const newT = { ...t, id: Math.random().toString(36).substr(2, 9) };
+    setTasks(prev => [...prev, newT]);
+    api.addTask(newT as Task);
   };
 
   const updateTaskStatus = (id: string, status: Task['status']) => {
@@ -173,7 +151,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
 
   return (
     <AppContext.Provider value={{
-      user, isAuthenticated, isDbConnected, isLoading, login, logout, switchRole,
+      user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
       transactions, addTransaction,
       products, addProduct, updateProduct, deleteProduct,
       tasks, addTask, updateTaskStatus,

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
@@ -9,6 +10,7 @@ import WorkCalendar from './components/WorkCalendar';
 import JobIntake from './components/JobIntake';
 import Login from './components/Login';
 import Settings from './components/Settings';
+import CompanyProfilePage from './components/CompanyProfile';
 
 const AppContent = () => {
   const { isAuthenticated } = useApp();
@@ -26,6 +28,7 @@ const AppContent = () => {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/calendar" element={<WorkCalendar />} />
           <Route path="/intake" element={<JobIntake />} />
+          <Route path="/company" element={<CompanyProfilePage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
