@@ -162,9 +162,9 @@ const JobIntake = () => {
             </div>
             <div className="bg-slate-50 p-4 rounded-lg border border-dashed border-slate-200">
                <p className="font-bold mb-2 text-slate-700">ข้อมูลการโอนเงิน</p>
-               <p>ธนาคาร: กสิกรไทย</p>
-               <p>ชื่อบัญชี: บจก. เอ็น ไอ ที คอมพิวเตอร์ โซลูชั่น</p>
-               <p className="font-bold text-slate-900">เลขที่บัญชี: 123-4-56789-0</p>
+               <p>ธนาคาร: {companyProfile.bankName || "-"}</p>
+               <p>ชื่อบัญชี: {companyProfile.accountName || "-"}</p>
+               <p className="font-bold text-slate-900">เลขที่บัญชี: {companyProfile.accountNumber || "-"}</p>
             </div>
           </div>
 

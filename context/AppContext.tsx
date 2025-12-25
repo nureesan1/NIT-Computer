@@ -9,7 +9,10 @@ const DEFAULT_COMPANY: CompanyProfile = {
   phone: '02-123-4567',
   email: 'support@nit.co.th',
   taxId: '0105551234567',
-  website: 'www.nit.co.th'
+  website: 'www.nit.co.th',
+  bankName: 'กสิกรไทย',
+  accountName: 'บจก. เอ็น ไอ ที คอนซัลติ้ง โซลูชั่น',
+  accountNumber: '123-4-56789-0'
 };
 
 const MOCK_TRANSACTIONS: Transaction[] = [

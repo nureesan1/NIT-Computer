@@ -1,7 +1,7 @@
 
 /**
- * NIT Computer Solution LTD. - Google Sheets Database API (Backend V2.1)
- * รองรับ: รายรับ-จ่าย, สต๊อกสินค้า, การจัดการใบงาน และโปรไฟล์บริษัท
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.2)
+ * รองรับ: รายรับ-จ่าย, สต๊อกสินค้า, การจัดการใบงาน และโปรไฟล์บริษัท (พร้อมข้อมูลธนาคาร)
  */
 
 function doGet(e) {
@@ -25,7 +25,7 @@ function doGet(e) {
       'deposit', 
       'customer' 
     ],
-    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo']
+    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber']
   };
 
   const responseData = {};
@@ -175,7 +175,7 @@ function deleteRow(ss, sheetName, keyField, keyValue) {
  */
 function saveCompanyProfile(ss, dataObj) {
   let sheet = ss.getSheetByName('CompanyProfile');
-  const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo'];
+  const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber'];
   
   if (!sheet) {
     sheet = ss.insertSheet('CompanyProfile');

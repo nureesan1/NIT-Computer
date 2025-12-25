@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon } from 'lucide-react';
+import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet } from 'lucide-react';
 
 const CompanyProfilePage = () => {
   const { companyProfile, updateCompanyProfile } = useApp();
@@ -147,6 +147,45 @@ const CompanyProfilePage = () => {
                 className="w-full border-slate-200 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
               />
             </div>
+          </div>
+
+          {/* Bank Transfer Information Section */}
+          <div className="md:col-span-2 mt-4 pt-6 border-t border-slate-100">
+             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+               <Wallet size={18} className="text-blue-600" /> ข้อมูลการโอนเงิน (แสดงในใบรับงาน)
+             </h3>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">ธนาคาร</label>
+                  <input 
+                    type="text" 
+                    placeholder="เช่น กสิกรไทย"
+                    value={formData.bankName || ''}
+                    onChange={e => setFormData({...formData, bankName: e.target.value})}
+                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">ชื่อบัญชี</label>
+                  <input 
+                    type="text" 
+                    placeholder="ระบุชื่อบัญชี"
+                    value={formData.accountName || ''}
+                    onChange={e => setFormData({...formData, accountName: e.target.value})}
+                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">เลขที่บัญชี</label>
+                  <input 
+                    type="text" 
+                    placeholder="XXX-X-XXXXX-X"
+                    value={formData.accountNumber || ''}
+                    onChange={e => setFormData({...formData, accountNumber: e.target.value})}
+                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
+                  />
+               </div>
+             </div>
           </div>
         </div>
 

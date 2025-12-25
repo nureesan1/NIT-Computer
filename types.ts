@@ -71,4 +71,7 @@ export interface CompanyProfile {
   taxId: string;
   website: string;
   logo?: string;
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
 }
