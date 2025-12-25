@@ -11,6 +11,7 @@ import JobIntake from './components/JobIntake';
 import Login from './components/Login';
 import Settings from './components/Settings';
 import CompanyProfilePage from './components/CompanyProfile';
+import PricingCalculator from './components/PricingCalculator';
 
 const AppContent = () => {
   const { isAuthenticated } = useApp();
@@ -26,6 +27,7 @@ const AppContent = () => {
           <Route path="/" element={<Dashboard />} />
           <Route path="/finance" element={<Finance />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/calculator" element={<PricingCalculator />} />
           <Route path="/calendar" element={<WorkCalendar />} />
           <Route path="/intake" element={<JobIntake />} />
           <Route path="/company" element={<CompanyProfilePage />} />

@@ -15,7 +15,8 @@ import {
   Database,
   CloudOff,
   Settings,
-  Building2
+  Building2,
+  Calculator
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -30,6 +31,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     { icon: <CalendarDays size={20} />, label: 'ตารางงาน', path: '/calendar', allowed: [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.MANAGER] },
     { icon: <Wallet size={20} />, label: 'การเงิน (รายรับ-จ่าย)', path: '/finance', allowed: [UserRole.ADMIN, UserRole.ACCOUNTING, UserRole.MANAGER] },
     { icon: <Package size={20} />, label: 'สต๊อกสินค้า', path: '/inventory', allowed: [UserRole.ADMIN, UserRole.STOCK, UserRole.MANAGER] },
+    { icon: <Calculator size={20} />, label: 'คำนวณราคาขาย', path: '/calculator', allowed: [UserRole.ADMIN, UserRole.MANAGER, UserRole.STOCK, UserRole.ACCOUNTING] },
     { icon: <Building2 size={20} />, label: 'โปรไฟล์บริษัท', path: '/company', allowed: [UserRole.ADMIN, UserRole.MANAGER] },
     { icon: <Settings size={20} />, label: 'ตั้งค่าระบบ', path: '/settings', allowed: [UserRole.ADMIN] },
   ];

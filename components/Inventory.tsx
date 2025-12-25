@@ -1,28 +1,19 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Product } from '../types';
-import { Plus, Minus, Search, AlertTriangle, Calculator, X, Edit2, Trash2, Save } from 'lucide-react';
+import { Plus, Minus, Search, AlertTriangle, X, Edit2, Trash2, Save, Package, FileText } from 'lucide-react';
 
 const Inventory = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Product>>({
     code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5
   });
-
-  // Calculator State
-  const [calcCost, setCalcCost] = useState<number>(0);
-  const profitMargin = 0.10; // 10%
-  const vatRate = 0.07; // 7%
-
-  const sellingPriceBeforeVat = calcCost * (1 + profitMargin);
-  const vatAmount = sellingPriceBeforeVat * vatRate;
-  const netSellingPrice = sellingPriceBeforeVat + vatAmount;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +33,6 @@ const Inventory = () => {
     setFormData(product);
     setEditingId(product.id);
     setShowForm(true);
-    setShowCalculator(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -68,14 +58,7 @@ const Inventory = () => {
           <h2 className="text-2xl font-bold text-slate-800">ระบบสต๊อกสินค้า</h2>
           <p className="text-slate-500">จัดการสินค้าและคำนวณราคา</p>
         </div>
-        <div className="flex gap-2">
-            <button 
-                onClick={() => { setShowCalculator(true); setShowForm(false); setEditingId(null); }}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
-            >
-                <Calculator size={18} />
-                <span className="hidden sm:inline">คำนวณราคาขาย</span>
-            </button>
+        <div className="flex gap-3">
             <button 
                 onClick={() => { 
                   if (showForm && !editingId) setShowForm(false);
@@ -84,94 +67,63 @@ const Inventory = () => {
                     setFormData({ code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5 });
                     setShowForm(true);
                   }
-                  setShowCalculator(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg active:scale-95 ${showForm && !editingId ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'}`}
             >
-                <Plus size={18} />
+                {showForm && !editingId ? <X size={20} /> : <Plus size={20} />}
                 {showForm && !editingId ? 'ยกเลิก' : 'เพิ่มสินค้า'}
             </button>
         </div>
       </div>
 
-      {/* Pricing Calculator Panel */}
-      {showCalculator && (
-        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-200 animate-fade-in mb-6 relative">
-            <button onClick={() => setShowCalculator(false)} className="absolute top-4 right-4 text-indigo-400 hover:text-indigo-600">
-                <X size={20} />
-            </button>
-            <h3 className="font-bold text-lg mb-4 text-indigo-900 flex items-center gap-2">
-                <Calculator size={20} />
-                ระบบคำนวณราคาขาย (Cost + 10% Profit + 7% VAT)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                <div>
-                    <label className="block text-sm font-medium text-indigo-800 mb-1">ต้นทุนสินค้า (บาท)</label>
-                    <input 
-                        type="number" 
-                        value={calcCost || ''} 
-                        onChange={(e) => setCalcCost(parseFloat(e.target.value))}
-                        className="w-full border-indigo-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="ระบุต้นทุน"
-                    />
-                </div>
-                <div className="bg-white p-3 rounded-lg border border-indigo-100">
-                    <span className="text-xs text-slate-500 block">ราคาก่อนภาษี (กำไร 10%)</span>
-                    <span className="font-bold text-slate-800 text-lg">{sellingPriceBeforeVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="bg-white p-3 rounded-lg border border-indigo-100">
-                    <span className="text-xs text-slate-500 block">ภาษีมูลค่าเพิ่ม (7%)</span>
-                    <span className="font-bold text-slate-800 text-lg">{vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-lg text-white shadow-md">
-                    <span className="text-xs text-indigo-100 block">ราคาขายสุทธิ</span>
-                    <span className="font-bold text-xl">{netSellingPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
-                </div>
-            </div>
-        </div>
-      )}
-
       {/* Product Form (Add/Edit) */}
       {showForm && (
-        <div className={`bg-white p-6 rounded-xl border-2 ${editingId ? 'border-amber-200' : 'border-blue-200'} shadow-md animate-fade-in`}>
-           <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingId ? 'แก้ไขข้อมูลสินค้า' : 'เพิ่มสินค้าใหม่'}
-              </h3>
-              <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
+        <div className={`p-8 rounded-2xl border-2 shadow-2xl animate-fade-in relative transition-all duration-300 ${editingId ? 'bg-amber-50/50 border-amber-200 shadow-amber-900/10' : 'bg-white border-blue-100 shadow-slate-900/5'}`}>
+           <div className="flex justify-between items-center mb-8">
+              <div className={`px-4 py-2 rounded-xl border-2 flex items-center gap-3 ${editingId ? 'bg-white border-amber-400 text-slate-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                {editingId ? <Edit2 className="text-amber-600" size={20} /> : <Package className="text-blue-600" size={20} />}
+                <h3 className="font-bold text-lg">
+                  {editingId ? `แก้ไขข้อมูลสินค้า: ${formData.code}` : 'เพิ่มสินค้าใหม่ลงในสต๊อก'}
+                </h3>
+              </div>
+              <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-white rounded-full transition-colors">
+                <X size={28} />
               </button>
            </div>
-           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="space-y-1">
-               <label className="text-xs font-semibold text-slate-500 uppercase">รหัสสินค้า</label>
-               <input type="text" placeholder="SKU-001" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
+           
+           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="space-y-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">รหัสสินค้า (SKU)</label>
+               <input type="text" placeholder="SKU-001" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
              </div>
-             <div className="space-y-1 md:col-span-2">
-               <label className="text-xs font-semibold text-slate-500 uppercase">ชื่อสินค้า</label>
-               <input type="text" placeholder="ระบุชื่อสินค้า..." className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+             <div className="space-y-2 md:col-span-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ชื่อสินค้า *</label>
+               <div className="relative group">
+                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size={20} />
+                 <input type="text" placeholder="ระบุชื่อสินค้า..." className="w-full border-slate-200 border-2 p-3.5 pl-12 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+               </div>
              </div>
-             <div className="space-y-1">
-               <label className="text-xs font-semibold text-slate-500 uppercase">ต้นทุน</label>
-               <input type="number" placeholder="0" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: parseFloat(e.target.value)})} required />
+             <div className="space-y-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ต้นทุน (บาท)</label>
+               <input type="number" placeholder="0" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: parseFloat(e.target.value)})} required />
              </div>
-             <div className="space-y-1">
-               <label className="text-xs font-semibold text-slate-500 uppercase">จำนวนในสต็อก</label>
-               <input type="number" placeholder="0" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.quantity || ''} onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value)})} required />
+             <div className="space-y-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">จำนวนตั้งต้น</label>
+               <input type="number" placeholder="0" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.quantity || ''} onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value)})} required />
              </div>
-             <div className="space-y-1">
-               <label className="text-xs font-semibold text-slate-500 uppercase">หน่วยนับ</label>
-               <input type="text" placeholder="เช่น ชิ้น, เมตร, กล่อง" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
+             <div className="space-y-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">หน่วยนับ</label>
+               <input type="text" placeholder="ชิ้น, เมตร..." className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
              </div>
-             <div className="space-y-1">
-               <label className="text-xs font-semibold text-slate-500 uppercase">จุดสั่งซื้อขั้นต่ำ</label>
-               <input type="number" placeholder="5" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={formData.minStockThreshold || ''} onChange={e => setFormData({...formData, minStockThreshold: parseFloat(e.target.value)})} />
+             <div className="space-y-2">
+               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">จุดสั่งซื้อขั้นต่ำ</label>
+               <input type="number" placeholder="5" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.minStockThreshold || ''} onChange={e => setFormData({...formData, minStockThreshold: parseFloat(e.target.value)})} />
              </div>
-             <div className="md:col-span-3 flex justify-end gap-2 mt-4">
-                <button type="button" onClick={cancelEdit} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded transition-colors">ยกเลิก</button>
-                <button type="submit" className={`px-6 py-2 rounded text-white shadow-sm flex items-center gap-2 transition-all ${editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+             <div className="md:col-span-3 flex justify-end gap-4 mt-4 pt-6 border-t border-slate-100">
+                <button type="button" onClick={cancelEdit} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
+                <button type="submit" className={`px-10 py-3 rounded-2xl text-white shadow-xl transition-all active:scale-95 font-black flex items-center gap-2 ${editingId ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>
                    {editingId ? <Save size={18} /> : <Plus size={18} />}
-                   {editingId ? 'บันทึกการแก้ไข' : 'บันทึกสินค้าใหม่'}
+                   {editingId ? 'บันทึกการแก้ไข' : 'ยืนยันเพิ่มสินค้า'}
                 </button>
              </div>
            </form>
@@ -179,100 +131,126 @@ const Inventory = () => {
       )}
 
       {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={24} />
         <input 
             type="text" 
             placeholder="ค้นหาสินค้า (ชื่อ, รหัส)..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-12 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-sm transition-all font-medium"
         />
       </div>
 
       {/* Product Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-[2rem] shadow-sm border-2 border-slate-50 overflow-hidden">
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                <thead className="bg-slate-50/50 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-slate-100">
                     <tr>
-                        <th className="p-4">รหัส</th>
-                        <th className="p-4">ชื่อสินค้า</th>
-                        <th className="p-4 text-right">ต้นทุน</th>
-                        <th className="p-4 text-center">คงเหลือ (เพิ่ม/ลด)</th>
-                        <th className="p-4 text-center">สถานะ</th>
-                        <th className="p-4 text-center">Actions</th>
+                        <th className="p-6">รหัส</th>
+                        <th className="p-6">ชื่อสินค้า</th>
+                        <th className="p-6">ต้นทุน</th>
+                        <th className="p-6 text-center">คงเหลือ (เพิ่ม/ลด)</th>
+                        <th className="p-6 text-center">สถานะ</th>
+                        <th className="p-6 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                    {filteredProducts.map(p => (
-                        <tr key={p.id} className={`hover:bg-slate-50 transition-colors ${editingId === p.id ? 'bg-amber-50' : ''}`}>
-                            <td className="p-4 text-slate-500 font-mono text-xs">{p.code}</td>
-                            <td className="p-4 font-medium text-slate-800">{p.name}</td>
-                            <td className="p-4 text-right">{p.cost.toLocaleString()} ฿</td>
-                            <td className="p-4">
-                                <div className="flex items-center justify-center gap-3">
+                    {filteredProducts.map((p, idx) => (
+                        <tr key={p.id} className={`hover:bg-slate-50/50 transition-colors group ${editingId === p.id ? 'bg-amber-50/50' : ''}`}>
+                            <td className="p-6 text-slate-400 font-black text-xs">
+                              {p.code || idx + 1}
+                            </td>
+                            <td className="p-6 font-bold text-slate-800 text-lg">{p.name}</td>
+                            <td className="p-6 font-black text-slate-700">{p.cost.toLocaleString()} ฿</td>
+                            <td className="p-6">
+                                <div className="flex items-center justify-center gap-4">
                                     <button 
                                         onClick={() => handleQuickAdjust(p.id, p.quantity, -1)}
-                                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center transition-colors"
+                                        className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-red-200 text-slate-400 hover:text-red-600 flex items-center justify-center transition-all active:scale-90"
                                         title="ลดจำนวน"
                                     >
-                                        <Minus size={16} />
+                                        <Minus size={18} />
                                     </button>
-                                    <div className="flex flex-col items-center min-w-[60px]">
-                                        <span className="font-bold text-lg text-slate-800 leading-none">{p.quantity}</span>
-                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter mt-1">{p.unit}</span>
+                                    <div className="flex flex-col items-center min-w-[80px]">
+                                        <span className="font-black text-2xl text-slate-800 leading-none">{p.quantity}</span>
+                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5">{p.unit}</span>
                                     </div>
                                     <button 
                                         onClick={() => handleQuickAdjust(p.id, p.quantity, 1)}
-                                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-green-100 text-slate-400 hover:text-green-600 flex items-center justify-center transition-colors"
+                                        className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-green-200 text-slate-400 hover:text-green-600 flex items-center justify-center transition-all active:scale-90"
                                         title="เพิ่มจำนวน"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={18} />
                                     </button>
                                 </div>
                             </td>
-                            <td className="p-4">
+                            <td className="p-6">
                                 <div className="flex justify-center">
                                     {p.quantity <= p.minStockThreshold ? (
-                                        <span className="flex items-center gap-1 text-[10px] px-2 py-1 bg-red-100 text-red-600 rounded-full font-bold uppercase">
-                                            <AlertTriangle size={12} /> ต่ำกว่าเกณฑ์
+                                        <span className="flex items-center gap-1.5 text-[10px] px-3 py-1.5 bg-red-100 text-red-600 rounded-xl font-black uppercase tracking-widest animate-pulse border border-red-200">
+                                            <AlertTriangle size={14} /> ต่ำกว่าเกณฑ์
                                         </span>
                                     ) : (
-                                        <span className="text-[10px] px-2 py-1 bg-green-100 text-green-600 rounded-full font-bold uppercase">ปกติ</span>
+                                        <span className="text-[10px] px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl font-black uppercase tracking-widest border border-emerald-100">ปกติ</span>
                                     )}
                                 </div>
                             </td>
-                            <td className="p-4">
-                                <div className="flex items-center justify-center gap-4">
+                            <td className="p-6">
+                                <div className="flex items-center justify-center gap-3">
                                     <button 
                                         onClick={() => startEdit(p)}
-                                        className="text-blue-500 hover:text-blue-700 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                        className="p-3 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-100 rounded-2xl transition-all active:scale-90 shadow-sm"
                                         title="แก้ไขข้อมูล"
                                     >
-                                        <Edit2 size={16} />
+                                        <Edit2 size={18} />
                                     </button>
                                     <button 
                                         onClick={() => {
-                                            if (confirm('ยืนยันการลบสินค้าชิ้นนี้?')) {
+                                            if (confirm('ยืนยันการลบสินค้าชิ้นนี้ออกจากระบบถาวร?')) {
                                                 deleteProduct(p.id);
                                             }
                                         }}
-                                        className="text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                        className="p-3 text-slate-400 hover:text-red-600 bg-white hover:bg-red-50 border border-slate-100 rounded-2xl transition-all active:scale-90 shadow-sm"
                                         title="ลบสินค้า"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={18} />
                                     </button>
                                 </div>
                             </td>
                         </tr>
                     ))}
                     {filteredProducts.length === 0 && (
-                        <tr><td colSpan={6} className="p-12 text-center text-slate-400 italic">ไม่พบข้อมูลสินค้าที่ค้นหา</td></tr>
+                        <tr><td colSpan={6} className="p-20 text-center">
+                            <Package size={64} className="mx-auto text-slate-100 mb-6" />
+                            <p className="text-slate-400 font-bold text-xl italic uppercase tracking-widest">ไม่พบสินค้าในสต็อก</p>
+                        </td></tr>
                     )}
                 </tbody>
             </table>
         </div>
+      </div>
+      
+      {/* Stock Summary Info Bar */}
+      <div className="bg-slate-900 text-white p-6 rounded-[2rem] shadow-2xl flex items-center justify-between border border-slate-800">
+          <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-600 rounded-2xl">
+                  <Package size={24} />
+              </div>
+              <div>
+                  <h5 className="font-black text-sm uppercase tracking-widest">สรุปสต๊อกทั้งหมด</h5>
+                  <p className="text-slate-400 text-xs mt-0.5">รวมสินค้า {products.length} รายการ | สินค้าใกล้หมด {products.filter(p => p.quantity <= p.minStockThreshold).length} รายการ</p>
+              </div>
+          </div>
+          <div className="flex gap-4">
+              <div className="text-right">
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">มูลค่าสต๊อกรวม (ต้นทุน)</p>
+                  <p className="text-blue-400 font-black text-xl leading-none mt-1">
+                    {products.reduce((acc, p) => acc + (p.cost * p.quantity), 0).toLocaleString()} ฿
+                  </p>
+              </div>
+          </div>
       </div>
     </div>
   );
