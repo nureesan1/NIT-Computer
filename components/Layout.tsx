@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
@@ -110,7 +111,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
              </div>
              <button 
                onClick={logout} 
-               className="text-slate-400 hover:text-white hover:bg-slate-700 p-1.5 rounded-lg transition-colors" 
+               className="text-slate-400 hover:text-white hover:bg-slate-700 p-1.5 rounded-lg transition-colors lg:hidden" 
                title="Logout"
              >
                 <LogOut size={18} />
@@ -134,14 +135,29 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       <main className="flex-1 flex flex-col h-screen overflow-hidden print:h-auto print:overflow-visible">
         {/* Header - Hidden on Print */}
         <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 print:hidden">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden text-slate-600 hover:text-blue-600"
-          >
-            <Menu size={24} />
-          </button>
-          <div className="text-slate-500 text-sm hidden sm:block">
-            {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {/* Left Side: Menu Toggle (Mobile) + Date */}
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden text-slate-600 hover:text-blue-600 p-2"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="text-slate-400 text-sm hidden sm:block font-medium">
+              {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+          </div>
+
+          {/* Right Side: Logout Button with Text */}
+          <div className="flex items-center">
+            <button 
+              onClick={logout}
+              className="flex items-center gap-2 text-slate-500 hover:text-red-600 transition-all text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+              title="ออกจากระบบ"
+            >
+              <span className="hidden xs:inline">ออกจากระบบ</span>
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
