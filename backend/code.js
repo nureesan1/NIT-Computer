@@ -1,7 +1,7 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.5)
- * ปรับปรุง: ระบบตรวจสอบโครงสร้างตาราง (Auto-Schema) และรองรับข้อมูล Base64 ขนาดใหญ่
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.7)
+ * แก้ไข: ปรับปรุงความเสถียรในการบันทึกข้อมูลขนาดใหญ่ (Base64) และเพิ่มการบังคับ Flush ข้อมูล
  */
 
 function doGet(e) {
@@ -24,11 +24,15 @@ function doGet(e) {
 function doPost(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   try {
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('No data received');
+    }
+
     const contents = e.postData.contents;
     const body = JSON.parse(contents);
     const { action, data } = body;
     
-    let result = { status: 'success' };
+    if (!action) throw new Error('No action specified');
 
     switch (action) {
       case 'ADD_TRANSACTION': appendRow(ss, 'Transactions', data); break;
@@ -45,7 +49,7 @@ function doPost(e) {
       default: throw new Error('Unknown action: ' + action);
     }
     
-    return createJsonResponse(result);
+    return createJsonResponse({ status: 'success', action: action });
   } catch (error) {
     return createJsonResponse({ status: 'error', message: error.toString() });
   }
@@ -90,6 +94,7 @@ function appendRow(ss, sheetName, dataObj) {
     return (typeof val === 'object' && val !== null) ? JSON.stringify(val) : val || '';
   });
   sheet.appendRow(row);
+  SpreadsheetApp.flush();
 }
 
 function updateRow(ss, sheetName, keyField, keyValue, newData) {
@@ -109,6 +114,7 @@ function updateRow(ss, sheetName, keyField, keyValue, newData) {
       break;
     }
   }
+  SpreadsheetApp.flush();
 }
 
 function deleteRow(ss, sheetName, keyField, keyValue) {
@@ -122,6 +128,7 @@ function deleteRow(ss, sheetName, keyField, keyValue) {
       sheet.deleteRow(i + 1); break;
     }
   }
+  SpreadsheetApp.flush();
 }
 
 function saveCompanyProfile(ss, dataObj) {
@@ -131,25 +138,27 @@ function saveCompanyProfile(ss, dataObj) {
   
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
   }
 
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
-    // ตรวจสอบคอลัมน์ (Auto-Update Header)
-    const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    if (currentHeaders.length < headers.length) {
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    }
+    lock.waitLock(20000); 
     
-    const row = headers.map(h => dataObj[h] || '');
-    if (sheet.getLastRow() > 1) {
-      sheet.getRange(2, 1, 1, headers.length).setValues([row]);
-    } else {
-      sheet.appendRow(row);
-    }
+    sheet.clear();
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
+    
+    const row = headers.map(h => {
+      let val = dataObj[h] || '';
+      // ข้อจำกัดของ Google Sheets: 1 Cell ห้ามเกิน 50,000 ตัวอักษร
+      if (typeof val === 'string' && val.length > 50000) {
+        val = val.substring(0, 49990) + "...(Truncated)";
+      }
+      return val;
+    });
+    
+    sheet.appendRow(row);
+    SpreadsheetApp.flush();
   } finally {
     lock.releaseLock();
   }

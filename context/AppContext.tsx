@@ -78,22 +78,25 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   const loadData = async () => {
     if (isSheetsConfigured()) {
       setIsLoading(true);
-      const data = await fetchInitialData();
-      if (data) {
-        setTransactions(data.transactions || []);
-        setProducts(data.products || []);
-        setTasks(data.tasks || []);
-        
-        // Load company profile from sheets if available
-        if (data.companyprofile && data.companyprofile.length > 0) {
-          const profile = data.companyprofile[0];
-          setCompanyProfile(profile);
-          localStorage.setItem('company_profile', JSON.stringify(profile));
+      try {
+        const data = await fetchInitialData();
+        if (data) {
+          setTransactions(data.transactions || []);
+          setProducts(data.products || []);
+          setTasks(data.tasks || []);
+          
+          if (data.companyprofile && data.companyprofile.length > 0) {
+            const profile = data.companyprofile[0];
+            setCompanyProfile(profile);
+            localStorage.setItem('company_profile', JSON.stringify(profile));
+          }
+          setIsDbConnected(true);
         }
-        
-        setIsDbConnected(true);
+      } catch (err) {
+        console.error("Load Data Error:", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
       return true;
     }
     return false;
@@ -104,16 +107,16 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   }, []);
 
   const updateCompanyProfile = async (profile: CompanyProfile): Promise<boolean> => {
-    // บันทึกลง local ก่อนเพื่อให้ UI ลื่นไหล
+    // บันทึกลง local ทันที
     setCompanyProfile(profile);
     localStorage.setItem('company_profile', JSON.stringify(profile));
     
-    // บันทึกลง Cloud (Google Sheets)
-    if (isDbConnected) {
+    // พยายามบันทึกลง Cloud หากมีการตั้งค่า URL ไว้
+    if (isSheetsConfigured()) {
       const success = await api.updateCompanyProfile(profile);
       return success;
     }
-    return true; // สำเร็จแบบ Offline
+    return true; 
   };
 
   const login = (password: string) => {

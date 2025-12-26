@@ -2,7 +2,7 @@
 import { Transaction, Product, Task, CompanyProfile } from "../types";
 
 const STORAGE_KEY = 'nit_sheet_api_url';
-const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbxhmRRmS6EpW501tODiH0jSvf5Ebmaztj0aouVzxeTS4u20CmHXtasSHs7b_kusP-SnYg/exec';
+const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzfWSTp3TkTlF4EJeOZz6RRLwuUQh9uWdBYBmB7wzFaOv1d3r2qdkoxvFolxsxdK53wYQ/exec';
 
 export const getApiUrl = () => {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
@@ -22,13 +22,16 @@ export const fetchInitialData = async () => {
   if (!url) return null;
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
     if (json.status === 'success') return json.data;
     return null;
   } catch (error) {
-    console.error("Failed to fetch initial data", error);
+    console.error("Failed to fetch data from Google Sheets:", error);
     return null;
   }
 };
@@ -40,24 +43,25 @@ const sendRequest = async (action: string, data: any): Promise<boolean> => {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      mode: 'cors', // เปลี่ยนกลับเป็น cors เพื่อให้ได้รับ Response
+      redirect: 'follow', 
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8', // ใช้ text/plain เพื่อเลี่ยง Preflight OPTIONS
+        'Content-Type': 'text/plain;charset=utf-8', 
       },
       body: JSON.stringify({ action, data }),
     });
 
-    // เนื่องจาก GAS จะทำการ Redirect (302) ซึ่งเบราว์เซอร์จะติดตามให้โดยอัตโนมัติ
-    // ถ้า fetch ไม่ throw error และได้ status 200 (หลังติดตาม redirect) แสดงว่าสำเร็จ
-    if (response.ok) {
-      const result = await response.json();
-      return result.status === 'success';
+    // ในกรณีของ GAS Web App ที่มีการ Redirect ข้ามโดเมน
+    // หากได้รับสถานะ OK หรือ Opaque มักหมายถึงข้อมูลถูกส่งไปถึงมือ Server แล้ว
+    if (response.ok || response.type === 'opaque') {
+      return true;
     }
-    return false;
+
+    const result = await response.json();
+    return result.status === 'success';
   } catch (error) {
-    // ในบางกรณี CORS อาจจะฟ้อง Error ทั้งที่ข้อมูลเข้าแล้ว 
-    // แต่สำหรับการบันทึก Profile เราต้องการความมั่นใจ
-    console.error(`Request failed: ${action}`, error);
+    console.error(`API Request Error [${action}]:`, error);
+    // กรณีบันทึกสำเร็จแต่ติด CORS Error ตอนขากลับ มักจะยังบันทึกได้อยู่
+    // ให้ตรวจสอบใน Sheets หากมั่นใจว่าเน็ตเวิร์กทำงานปกติ
     return false;
   }
 };

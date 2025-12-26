@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet, QrCode, CloudCheck, CloudOff, Loader2, AlertCircle } from 'lucide-react';
+import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet, QrCode, CloudCheck, CloudOff, Loader2, AlertCircle, Info } from 'lucide-react';
 
 const CompanyProfilePage = () => {
   const { companyProfile, updateCompanyProfile, isDbConnected } = useApp();
@@ -18,7 +18,7 @@ const CompanyProfilePage = () => {
       const success = await updateCompanyProfile(formData);
       if (success) {
         setSaveStatus('SUCCESS');
-        // รีเฟรชข้อมูลฟอร์มด้วยค่าปัจจุบัน
+        // Refresh local data
         setFormData(formData);
       } else {
         setSaveStatus('ERROR');
@@ -37,9 +37,9 @@ const CompanyProfilePage = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'qrCode') => {
     const file = e.target.files?.[0];
     if (file) {
-      // ตรวจสอบขนาดไฟล์ (ไม่ควรเกิน 1MB เพื่อความเสถียรของ Google Sheets)
-      if (file.size > 1024 * 1024) {
-        alert('ขนาดไฟล์ใหญ่เกินไป กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 1MB');
+      // ตรวจสอบขนาดไฟล์ (Google Sheets รับได้จำกัด)
+      if (file.size > 200 * 1024) { // จำกัดไว้ที่ 200KB เพื่อความชัวร์ 100%
+        alert('รูปภาพมีขนาดใหญ่เกินไป (จำกัดไม่เกิน 200KB)\nกรุณาย่อขนาดรูปภาพก่อนอัปโหลดเพื่อให้บันทึกลง Google Sheets ได้');
         return;
       }
 
@@ -63,6 +63,15 @@ const CompanyProfilePage = () => {
         </div>
       </div>
 
+      <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl flex items-start gap-3">
+        <Info className="text-amber-600 shrink-0 mt-0.5" size={20} />
+        <div className="text-xs text-amber-800 font-medium leading-relaxed">
+          <p className="font-bold mb-1">คำแนะนำเรื่องรูปภาพ (Logo / QR Code):</p>
+          Google Sheets มีข้อจำกัดในการเก็บข้อมูล **ห้ามใช้รูปภาพขนาดเกิน 200KB** มิฉะนั้นข้อมูลจะไม่ถูกบันทึก 
+          หากบันทึกแล้วรูปไม่ขึ้น ให้ลองย่อรูปภาพให้เล็กลงแล้วบันทึกใหม่อีกครั้ง
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center px-8">
           <h3 className="font-bold text-slate-700 flex items-center gap-2">
@@ -71,12 +80,12 @@ const CompanyProfilePage = () => {
           <div className="flex items-center gap-3">
             {saveStatus === 'SUCCESS' && (
               <span className="text-emerald-600 text-sm font-bold flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-fade-in shadow-sm">
-                <CloudCheck size={18} /> บันทึกและซิงค์สำเร็จ
+                <CloudCheck size={18} /> บันทึกสำเร็จ
               </span>
             )}
             {saveStatus === 'ERROR' && (
               <span className="text-red-600 text-sm font-bold flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-100 animate-fade-in shadow-sm">
-                <AlertCircle size={18} /> บันทึกล้มเหลว กรุณาตรวจสอบการเชื่อมต่อ
+                <AlertCircle size={18} /> พบข้อผิดพลาด
               </span>
             )}
           </div>
@@ -237,7 +246,6 @@ const CompanyProfilePage = () => {
                 <CloudCheck size={16} /> Cloud Sync Active
               </div>
             )}
-            <p className="text-[10px] text-slate-500 font-medium hidden sm:block">ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัยใน Google Sheets</p>
           </div>
           
           <button 
@@ -246,25 +254,13 @@ const CompanyProfilePage = () => {
             className="flex items-center gap-3 bg-blue-600 text-white px-12 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group"
           >
             {isSaving ? (
-              <><Loader2 className="animate-spin" size={24} /> กำลังบันทึกข้อมูล...</>
+              <><Loader2 className="animate-spin" size={24} /> กำลังบันทึก...</>
             ) : (
               <><Save size={24} className="group-hover:scale-110 transition-transform" /> บันทึกและซิงค์ Cloud</>
             )}
           </button>
         </div>
       </form>
-      
-      {saveStatus === 'ERROR' && (
-        <div className="bg-red-50 border-2 border-red-100 p-6 rounded-3xl flex items-start gap-4 animate-shake">
-          <AlertCircle className="text-red-500 shrink-0 mt-1" size={24} />
-          <div className="space-y-1">
-             <h4 className="font-black text-red-800 uppercase tracking-widest text-sm">การเชื่อมต่อล้มเหลว</h4>
-             <p className="text-red-600 text-xs font-medium leading-relaxed">
-               ไม่สามารถส่งข้อมูลไปยัง Google Sheets ได้ กรุณาตรวจสอบว่าคุณได้ทำการ Deploy Web App เป็นเวอร์ชั่นล่าสุด (v2.4) และตั้งค่า URL ในหน้า Settings ถูกต้องแล้ว
-             </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
