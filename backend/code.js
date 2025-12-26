@@ -70,6 +70,9 @@ function doPost(e) {
       case 'UPDATE_TASK_STATUS':
         updateRow(ss, 'Tasks', 'id', data.id, { status: data.status });
         break;
+      case 'DELETE_TASK':
+        deleteRow(ss, 'Tasks', 'id', data.id);
+        break;
       case 'UPDATE_COMPANY_PROFILE':
         saveCompanyProfile(ss, data);
         break;

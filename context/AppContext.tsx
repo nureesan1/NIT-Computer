@@ -55,6 +55,7 @@ interface AppContextType {
   addTask: (t: Omit<Task, 'id'>) => void;
   updateTask: (id: string, t: Partial<Task>) => void;
   updateTaskStatus: (id: string, status: Task['status']) => void;
+  deleteTask: (id: string) => void;
   configDatabase: (url: string) => Promise<boolean>;
 }
 
@@ -162,10 +163,6 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
 
   const updateTask = (id: string, t: Partial<Task>) => {
     setTasks(prev => prev.map(task => task.id === id ? { ...task, ...t } : task));
-    // Here we'd typically have a generic updateTask api call
-    // For now, since our backend is simple, we might need to extend it.
-    // However, for this MVP we update local state which handles immediate UI.
-    // In a production app, we'd sync back to Google Sheets.
   };
 
   const updateTaskStatus = (id: string, status: Task['status']) => {
@@ -173,12 +170,17 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     api.updateTaskStatus(id, status);
   };
 
+  const deleteTask = (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    api.deleteTask(id);
+  };
+
   return (
     <AppContext.Provider value={{
       user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
       transactions, addTransaction,
       products, addProduct, updateProduct, deleteProduct,
-      tasks, addTask, updateTask, updateTaskStatus,
+      tasks, addTask, updateTask, updateTaskStatus, deleteTask,
       configDatabase
     }}>
       {children}

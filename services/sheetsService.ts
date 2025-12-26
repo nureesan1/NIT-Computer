@@ -54,5 +54,6 @@ export const api = {
   deleteProduct: (id: string) => sendRequest('DELETE_PRODUCT', { id }),
   addTask: (t: Task) => sendRequest('ADD_TASK', t),
   updateTaskStatus: (id: string, status: string) => sendRequest('UPDATE_TASK_STATUS', { id, status }),
+  deleteTask: (id: string) => sendRequest('DELETE_TASK', { id }),
   updateCompanyProfile: (profile: CompanyProfile) => sendRequest('UPDATE_COMPANY_PROFILE', profile),
 };

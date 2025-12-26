@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const WorkCalendar = () => {
-  const { tasks, addTask, updateTask, updateTaskStatus, companyProfile } = useApp();
+  const { tasks, addTask, updateTask, updateTaskStatus, deleteTask, companyProfile } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | TaskType>('ALL');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -41,6 +41,12 @@ const WorkCalendar = () => {
     setFormData({ ...task });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้? (Are you sure you want to delete this task?)')) {
+      deleteTask(id);
+    }
   };
 
   const filteredTasks = tasks.filter(t => filterType === 'ALL' ? true : t.type === filterType)
@@ -332,6 +338,13 @@ const WorkCalendar = () => {
                             title="พิมพ์ใบงาน"
                           >
                             <Printer size={20} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(task.id)}
+                            className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-90 border border-slate-100"
+                            title="ลบงาน"
+                          >
+                            <Trash2 size={20} />
                           </button>
                         </div>
 
