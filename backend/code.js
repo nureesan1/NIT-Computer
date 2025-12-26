@@ -1,95 +1,53 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.4)
- * แก้ไข: ปรับปรุงการบันทึก CompanyProfile ให้ล้างข้อมูลเดิมและเขียนใหม่เพื่อความถูกต้อง 100%
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.5)
+ * ปรับปรุง: ระบบตรวจสอบโครงสร้างตาราง (Auto-Schema) และรองรับข้อมูล Base64 ขนาดใหญ่
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
   const schema = {
     'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
-    'Tasks': [
-      'id', 
-      'type', 
-      'title', 
-      'description', 
-      'startDate', 
-      'endDate', 
-      'location', 
-      'assignee', 
-      'status', 
-      'estimatedCost', 
-      'deposit', 
-      'customer' 
-    ],
+    'Tasks': ['id', 'type', 'title', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],
     'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode']
   };
 
   const responseData = {};
-  
   Object.keys(schema).forEach(sheetName => {
     responseData[sheetName.toLowerCase()] = getSheetData(ss, sheetName, schema[sheetName]);
   });
   
-  return createJsonResponse({
-    status: 'success',
-    data: responseData
-  });
+  return createJsonResponse({ status: 'success', data: responseData });
 }
 
 function doPost(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      throw new Error('No post data received');
-    }
-    
     const contents = e.postData.contents;
     const body = JSON.parse(contents);
     const { action, data } = body;
     
+    let result = { status: 'success' };
+
     switch (action) {
-      case 'ADD_TRANSACTION':
-        appendRow(ss, 'Transactions', data);
-        break;
-      case 'ADD_PRODUCT':
-        appendRow(ss, 'Products', data);
-        break;
-      case 'UPDATE_PRODUCT':
-        updateRow(ss, 'Products', 'id', data.id, data);
-        break;
-      case 'DELETE_PRODUCT':
-        deleteRow(ss, 'Products', 'id', data.id);
-        break;
+      case 'ADD_TRANSACTION': appendRow(ss, 'Transactions', data); break;
+      case 'ADD_PRODUCT': appendRow(ss, 'Products', data); break;
+      case 'UPDATE_PRODUCT': updateRow(ss, 'Products', 'id', data.id, data); break;
+      case 'DELETE_PRODUCT': deleteRow(ss, 'Products', 'id', data.id); break;
       case 'ADD_TASK':
-        if (data.customer && typeof data.customer === 'object') {
-          data.customer = JSON.stringify(data.customer);
-        }
-        appendRow(ss, 'Tasks', data);
+        if (data.customer && typeof data.customer === 'object') data.customer = JSON.stringify(data.customer);
+        appendRow(ss, 'Tasks', data); 
         break;
-      case 'UPDATE_TASK_STATUS':
-        updateRow(ss, 'Tasks', 'id', data.id, { status: data.status });
-        break;
-      case 'DELETE_TASK':
-        deleteRow(ss, 'Tasks', 'id', data.id);
-        break;
-      case 'UPDATE_COMPANY_PROFILE':
-        saveCompanyProfile(ss, data);
-        break;
-      default:
-        throw new Error('Unknown action: ' + action);
+      case 'UPDATE_TASK_STATUS': updateRow(ss, 'Tasks', 'id', data.id, { status: data.status }); break;
+      case 'DELETE_TASK': deleteRow(ss, 'Tasks', 'id', data.id); break;
+      case 'UPDATE_COMPANY_PROFILE': saveCompanyProfile(ss, data); break;
+      default: throw new Error('Unknown action: ' + action);
     }
     
-    return createJsonResponse({ status: 'success' });
-      
+    return createJsonResponse(result);
   } catch (error) {
-    return createJsonResponse({ 
-      status: 'error', 
-      message: error.toString() 
-    });
+    return createJsonResponse({ status: 'error', message: error.toString() });
   }
 }
 
@@ -100,27 +58,21 @@ function createJsonResponse(data) {
 
 function getSheetData(ss, sheetName, defaultHeaders) {
   let sheet = ss.getSheetByName(sheetName);
-  
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     sheet.appendRow(defaultHeaders);
     sheet.getRange(1, 1, 1, defaultHeaders.length).setFontWeight("bold").setBackground("#f3f3f3");
     return [];
   }
-  
   const range = sheet.getDataRange();
   const rows = range.getValues();
-  
   if (rows.length < 2) return [];
-  
   const headers = rows[0];
-  const data = rows.slice(1).map(row => {
+  return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, index) => {
       let value = row[index];
-      if (value instanceof Date) {
-        value = Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
-      }
+      if (value instanceof Date) value = Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
       if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
         try { value = JSON.parse(value); } catch(e) {}
       }
@@ -128,8 +80,6 @@ function getSheetData(ss, sheetName, defaultHeaders) {
     });
     return obj;
   });
-  
-  return data;
 }
 
 function appendRow(ss, sheetName, dataObj) {
@@ -148,7 +98,6 @@ function updateRow(ss, sheetName, keyField, keyValue, newData) {
   const headers = data[0];
   const keyIndex = headers.indexOf(keyField);
   if (keyIndex === -1) return;
-  
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][keyIndex]) === String(keyValue)) {
       headers.forEach((header, colIndex) => {
@@ -170,15 +119,11 @@ function deleteRow(ss, sheetName, keyField, keyValue) {
   if (keyIndex === -1) return;
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][keyIndex]) === String(keyValue)) {
-      sheet.deleteRow(i + 1);
-      break;
+      sheet.deleteRow(i + 1); break;
     }
   }
 }
 
-/**
- * บันทึกโปรไฟล์บริษัท (ล้างและเขียนใหม่เพื่อให้แน่ใจว่า Column ถูกต้อง)
- */
 function saveCompanyProfile(ss, dataObj) {
   const sheetName = 'CompanyProfile';
   let sheet = ss.getSheetByName(sheetName);
@@ -186,22 +131,25 @@ function saveCompanyProfile(ss, dataObj) {
   
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-  }
-  
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000); 
-    
-    // ล้างข้อมูลทั้งหมดและเขียนใหม่เพื่อแก้ปัญหา Column ไม่ตรง
-    sheet.clear();
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
+  }
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    // ตรวจสอบคอลัมน์ (Auto-Update Header)
+    const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (currentHeaders.length < headers.length) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
     
     const row = headers.map(h => dataObj[h] || '');
-    sheet.appendRow(row);
-    
-  } catch (e) {
-    throw new Error('Save Profile Failed: ' + e.toString());
+    if (sheet.getLastRow() > 1) {
+      sheet.getRange(2, 1, 1, headers.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+    }
   } finally {
     lock.releaseLock();
   }
