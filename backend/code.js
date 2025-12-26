@@ -1,13 +1,12 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.2)
- * รองรับ: รายรับ-จ่าย, สต๊อกสินค้า, การจัดการใบงาน และโปรไฟล์บริษัท (พร้อมข้อมูลธนาคาร)
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V2.4)
+ * แก้ไข: ปรับปรุงการบันทึก CompanyProfile ให้ล้างข้อมูลเดิมและเขียนใหม่เพื่อความถูกต้อง 100%
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // กำหนดโครงสร้าง Headers ของแต่ละ Sheet
   const schema = {
     'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
@@ -30,7 +29,6 @@ function doGet(e) {
 
   const responseData = {};
   
-  // ดึงข้อมูลจากทุก Sheet
   Object.keys(schema).forEach(sheetName => {
     responseData[sheetName.toLowerCase()] = getSheetData(ss, sheetName, schema[sheetName]);
   });
@@ -45,7 +43,12 @@ function doPost(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   try {
-    const body = JSON.parse(e.postData.contents);
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('No post data received');
+    }
+    
+    const contents = e.postData.contents;
+    const body = JSON.parse(contents);
     const { action, data } = body;
     
     switch (action) {
@@ -174,22 +177,32 @@ function deleteRow(ss, sheetName, keyField, keyValue) {
 }
 
 /**
- * บันทึกโปรไฟล์บริษัท (มีเพียงแถวเดียวต่อจาก Header)
+ * บันทึกโปรไฟล์บริษัท (ล้างและเขียนใหม่เพื่อให้แน่ใจว่า Column ถูกต้อง)
  */
 function saveCompanyProfile(ss, dataObj) {
-  let sheet = ss.getSheetByName('CompanyProfile');
+  const sheetName = 'CompanyProfile';
+  let sheet = ss.getSheetByName(sheetName);
   const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode'];
   
   if (!sheet) {
-    sheet = ss.insertSheet('CompanyProfile');
-    sheet.appendRow(headers);
+    sheet = ss.insertSheet(sheetName);
   }
   
-  const row = headers.map(h => dataObj[h] || '');
-  
-  if (sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, 1, headers.length).setValues([row]);
-  } else {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); 
+    
+    // ล้างข้อมูลทั้งหมดและเขียนใหม่เพื่อแก้ปัญหา Column ไม่ตรง
+    sheet.clear();
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
+    
+    const row = headers.map(h => dataObj[h] || '');
     sheet.appendRow(row);
+    
+  } catch (e) {
+    throw new Error('Save Profile Failed: ' + e.toString());
+  } finally {
+    lock.releaseLock();
   }
 }

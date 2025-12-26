@@ -44,7 +44,7 @@ interface AppContextType {
   login: (password: string) => boolean;
   logout: () => void;
   switchRole: (role: UserRole) => void;
-  updateCompanyProfile: (profile: CompanyProfile) => void;
+  updateCompanyProfile: (profile: CompanyProfile) => Promise<boolean>;
   transactions: Transaction[];
   addTransaction: (t: Omit<Transaction, 'id'>) => void;
   products: Product[];
@@ -103,11 +103,17 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     loadData();
   }, []);
 
-  const updateCompanyProfile = (profile: CompanyProfile) => {
+  const updateCompanyProfile = async (profile: CompanyProfile): Promise<boolean> => {
+    // บันทึกลง local ก่อนเพื่อให้ UI ลื่นไหล
     setCompanyProfile(profile);
     localStorage.setItem('company_profile', JSON.stringify(profile));
-    // Sync with Sheets
-    api.updateCompanyProfile(profile);
+    
+    // บันทึกลง Cloud (Google Sheets)
+    if (isDbConnected) {
+      const success = await api.updateCompanyProfile(profile);
+      return success;
+    }
+    return true; // สำเร็จแบบ Offline
   };
 
   const login = (password: string) => {
