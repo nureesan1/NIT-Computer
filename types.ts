@@ -74,4 +74,5 @@ export interface CompanyProfile {
   bankName?: string;
   accountName?: string;
   accountNumber?: string;
+  qrCode?: string;
 }

@@ -53,12 +53,7 @@ const JobIntake = () => {
 
     addTask(newTask);
     
-    // In current context addTask is async but sets state. 
-    // To show receipt correctly we need the newly added task.
-    // In a real app we'd await or use the returned ID.
-    // For this mock, we'll find the last task (which is the one we just added)
-    // Actually, addTask updates state which might be delayed.
-    // Let's manually construct the ID for the receipt display immediately.
+    // Generate mock ID for immediate receipt display
     const year = new Date().getFullYear();
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const mockId = `JOB-${year}-${randomNum}`;
@@ -127,54 +122,57 @@ const JobIntake = () => {
 
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="border p-4 rounded-lg bg-slate-50">
-              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2 font-sarabun"><User size={16} className="text-blue-600" /> ข้อมูลลูกค้า</h3>
+              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2"><User size={16} className="text-blue-600" /> ข้อมูลลูกค้า</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-semibold w-24 inline-block text-slate-500">ชื่อลูกค้า:</span> <span className="text-slate-800">{createdJob.customer?.name}</span></p>
                 {createdJob.customer?.company && <p><span className="font-semibold w-24 inline-block text-slate-500">บริษัท:</span> <span className="text-slate-800">{createdJob.customer?.company}</span></p>}
                 <p><span className="font-semibold w-24 inline-block text-slate-500">เบอร์โทร:</span> <span className="text-slate-800">{createdJob.customer?.phone}</span></p>
-                {createdJob.customer?.address && <p><span className="font-semibold w-24 inline-block text-slate-500">ที่อยู่:</span> <span className="text-slate-800">{createdJob.customer?.address}</span></p>}
               </div>
             </div>
             <div className="border p-4 rounded-lg bg-slate-50">
-              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2 font-sarabun"><FileText size={16} className="text-blue-600" /> รายละเอียดงาน</h3>
+              <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2"><FileText size={16} className="text-blue-600" /> รายละเอียดงาน</h3>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold w-32 inline-block text-slate-500">หัวข้อ:</span> <span className="text-slate-800">{createdJob.title}</span></p>
+                <p><span className="font-semibold w-32 inline-block text-slate-500">หัวข้อ:</span> <span className="text-slate-800 font-bold">{createdJob.title}</span></p>
                 <p><span className="font-semibold w-32 inline-block text-slate-500">วันที่รับงาน:</span> <span className="text-slate-800">{createdJob.startDate}</span></p>
-                {createdJob.endDate && <p><span className="font-semibold w-32 inline-block text-slate-500">กำหนดส่ง/ติดตั้ง:</span> <span className="text-slate-800 font-bold text-blue-700">{createdJob.endDate}</span></p>}
-                <p><span className="font-semibold w-32 inline-block text-slate-500">ผู้รับผิดชอบ:</span> <span className="text-slate-800">{createdJob.assignee || "-"}</span></p>
+                {createdJob.endDate && <p><span className="font-semibold w-32 inline-block text-slate-500">กำหนดส่งคืน:</span> <span className="text-slate-800 font-bold text-blue-700">{createdJob.endDate}</span></p>}
               </div>
             </div>
           </div>
 
           <div className="mb-8">
-            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2 font-sarabun"><ClipboardList size={16} /> รายละเอียดปัญหา / ขอบเขตงาน</h3>
-            <div className="border rounded-lg p-4 min-h-[120px] bg-white whitespace-pre-wrap text-slate-700 leading-relaxed shadow-sm">{createdJob.description || "-"}</div>
+            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><ClipboardList size={16} /> รายละเอียดงาน</h3>
+            <div className="border rounded-lg p-4 min-h-[100px] bg-white whitespace-pre-wrap text-slate-700 leading-relaxed shadow-sm">{createdJob.description || "-"}</div>
           </div>
 
           <div className="mb-8 flex justify-end">
              <div className="w-1/2 space-y-2">
                 <div className="flex justify-between border-b py-2"><span className="text-slate-600">ราคาประเมิน:</span><span className="font-bold text-lg">{createdJob.estimatedCost?.toLocaleString()} ฿</span></div>
                 <div className="flex justify-between border-b py-2"><span className="text-slate-600 font-semibold">มัดจำแล้ว:</span><span className="font-bold text-green-600">{createdJob.deposit?.toLocaleString()} ฿</span></div>
-                <div className="flex justify-between border-b-2 border-slate-900 py-3 bg-slate-50 px-2 rounded"><span className="font-bold text-slate-800">ยอดคงค้าง:</span><span className="font-black text-2xl text-red-600">{remaining.toLocaleString()} ฿</span></div>
-                <p className="text-[10px] text-slate-400 mt-1 italic text-right">* ราคาอาจมีการเปลี่ยนแปลงตามอุปกรณ์ที่ใช้จริง</p>
+                <div className="flex justify-between border-b-2 border-slate-900 py-3 bg-slate-50 px-2 rounded"><span className="font-bold text-slate-800 text-lg">ยอดคงค้าง:</span><span className="font-black text-2xl text-red-600">{remaining.toLocaleString()} ฿</span></div>
              </div>
           </div>
 
-          <div className="mb-12 text-[11px] text-slate-500 border-t pt-4 grid grid-cols-2 gap-8">
-            <div>
+          <div className="mb-12 text-[11px] text-slate-500 border-t pt-6 grid grid-cols-5 gap-8">
+            <div className="col-span-3">
               <p className="font-bold mb-1 text-slate-700">เงื่อนไขการให้บริการ</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>กรุณานำใบรับงานนี้มารับเครื่องคืนทุกครั้ง</li>
-                <li>หากพ้นกำหนด 30 วัน บริษัทขอสงวนสิทธิ์ในการจัดการสินค้าตามสมควร</li>
-                <li>การรับประกันครอบคลุมเฉพาะอาการเดิมที่ซ่อมและอุปกรณ์ที่เปลี่ยน</li>
-                <li>กรณีล้างเครื่องหรือติดตั้งโปรแกรม ข้อมูลอาจสูญหาย ทางร้านไม่รับผิดชอบข้อมูล</li>
+                <li>หากพ้นกำหนด 30 วัน บริษัทขอสงวนสิทธิ์ในการจัดการสินค้า</li>
+                <li>การรับประกันครอบคลุมเฉพาะอาการเดิมที่ซ่อม</li>
               </ol>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg border border-dashed border-slate-200">
-               <p className="font-bold mb-2 text-slate-700">ข้อมูลการโอนเงิน</p>
-               <p>ธนาคาร: {companyProfile.bankName || "-"}</p>
-               <p>ชื่อบัญชี: {companyProfile.accountName || "-"}</p>
-               <p className="font-bold text-slate-900">เลขที่บัญชี: {companyProfile.accountNumber || "-"}</p>
+            <div className="col-span-2 flex gap-4 items-center bg-slate-50 p-4 rounded-xl border border-dashed border-slate-200">
+               {companyProfile.qrCode ? (
+                 <img src={companyProfile.qrCode} alt="Payment QR" className="w-24 h-24 object-contain rounded border bg-white" />
+               ) : (
+                 <div className="w-24 h-24 bg-white border rounded flex items-center justify-center text-slate-300">No QR</div>
+               )}
+               <div className="text-[10px] leading-tight flex-1">
+                  <p className="font-black text-slate-700 mb-1 uppercase tracking-widest">ข้อมูลการโอนเงิน</p>
+                  <p>{companyProfile.bankName || "-"}</p>
+                  <p>{companyProfile.accountName || "-"}</p>
+                  <p className="font-black text-slate-900 mt-1">{companyProfile.accountNumber || "-"}</p>
+               </div>
             </div>
           </div>
 
@@ -186,7 +184,7 @@ const JobIntake = () => {
             </div>
             <div className="text-center">
               <div className="border-b border-slate-400 h-12 mb-2 w-48 mx-auto"></div>
-              <p className="text-xs text-slate-500">ลงชื่อผู้รับงาน / เจ้าหน้าที่</p>
+              <p className="text-xs text-slate-500">ลงชื่อเจ้าหน้าที่</p>
               <p className="text-[10px] text-slate-400 mt-1 font-bold">( {createdJob.assignee || companyProfile.name} )</p>
             </div>
           </div>

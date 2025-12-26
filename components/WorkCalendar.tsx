@@ -140,11 +140,18 @@ const WorkCalendar = () => {
              </div>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-lg border border-dashed border-slate-200 mt-10">
-               <p className="font-bold mb-2 text-slate-700">ข้อมูลการโอนเงิน</p>
-               <p className="text-sm">ธนาคาร: {companyProfile.bankName || "-"}</p>
-               <p className="text-sm">ชื่อบัญชี: {companyProfile.accountName || "-"}</p>
-               <p className="font-bold text-slate-900">เลขที่บัญชี: {companyProfile.accountNumber || "-"}</p>
+          <div className="col-span-2 flex gap-6 items-center bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-300 mt-10">
+               {companyProfile.qrCode ? (
+                 <img src={companyProfile.qrCode} alt="Payment QR" className="w-28 h-28 object-contain rounded border bg-white shadow-sm" />
+               ) : (
+                 <div className="w-28 h-28 bg-white border rounded flex items-center justify-center text-slate-300">No QR Code</div>
+               )}
+               <div className="text-xs leading-relaxed flex-1">
+                  <p className="font-black text-slate-800 mb-1.5 uppercase tracking-widest border-b border-slate-200 pb-1">ข้อมูลการโอนเงิน</p>
+                  <p className="font-medium">ธนาคาร: <span className="font-bold">{companyProfile.bankName || "-"}</span></p>
+                  <p className="font-medium">ชื่อบัญชี: <span className="font-bold">{companyProfile.accountName || "-"}</span></p>
+                  <p className="font-black text-slate-900 mt-2 bg-white px-2 py-1 rounded border inline-block text-sm">{companyProfile.accountNumber || "-"}</p>
+               </div>
           </div>
         </div>
       </div>

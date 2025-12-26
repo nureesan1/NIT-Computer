@@ -25,7 +25,7 @@ function doGet(e) {
       'deposit', 
       'customer' 
     ],
-    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber']
+    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode']
   };
 
   const responseData = {};
@@ -178,7 +178,7 @@ function deleteRow(ss, sheetName, keyField, keyValue) {
  */
 function saveCompanyProfile(ss, dataObj) {
   let sheet = ss.getSheetByName('CompanyProfile');
-  const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber'];
+  const headers = ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode'];
   
   if (!sheet) {
     sheet = ss.insertSheet('CompanyProfile');

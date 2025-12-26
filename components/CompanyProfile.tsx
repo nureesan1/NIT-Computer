@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet } from 'lucide-react';
+import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet, QrCode } from 'lucide-react';
 
 const CompanyProfilePage = () => {
   const { companyProfile, updateCompanyProfile } = useApp();
@@ -15,12 +15,12 @@ const CompanyProfilePage = () => {
     setTimeout(() => setSaveStatus(false), 3000);
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'qrCode') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, logo: reader.result as string });
+        setFormData({ ...formData, [field]: reader.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -59,7 +59,7 @@ const CompanyProfilePage = () => {
                 )}
                 <label className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-xs font-bold">
                   เปลี่ยนโลโก้
-                  <input type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'logo')} />
                 </label>
              </div>
              <div>
@@ -154,36 +154,54 @@ const CompanyProfilePage = () => {
              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                <Wallet size={18} className="text-blue-600" /> ข้อมูลการโอนเงิน (แสดงในใบรับงาน)
              </h3>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">ธนาคาร</label>
-                  <input 
-                    type="text" 
-                    placeholder="เช่น กสิกรไทย"
-                    value={formData.bankName || ''}
-                    onChange={e => setFormData({...formData, bankName: e.target.value})}
-                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
-                  />
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+               {/* QR Code Upload */}
+               <div className="flex flex-col items-center">
+                  <div className="w-32 h-32 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center relative overflow-hidden group mb-2 shadow-inner">
+                    {formData.qrCode ? (
+                      <img src={formData.qrCode} alt="Payment QR Code" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <QrCode size={40} className="text-slate-300" />
+                    )}
+                    <label className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-[10px] font-black uppercase tracking-widest text-center px-2">
+                      อัปโหลด QR Code
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'qrCode')} />
+                    </label>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">QR Code การโอนเงิน</span>
                </div>
-               <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">ชื่อบัญชี</label>
-                  <input 
-                    type="text" 
-                    placeholder="ระบุชื่อบัญชี"
-                    value={formData.accountName || ''}
-                    onChange={e => setFormData({...formData, accountName: e.target.value})}
-                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
-                  />
-               </div>
-               <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">เลขที่บัญชี</label>
-                  <input 
-                    type="text" 
-                    placeholder="XXX-X-XXXXX-X"
-                    value={formData.accountNumber || ''}
-                    onChange={e => setFormData({...formData, accountNumber: e.target.value})}
-                    className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all"
-                  />
+
+               <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">ธนาคาร</label>
+                    <input 
+                      type="text" 
+                      placeholder="เช่น กสิกรไทย"
+                      value={formData.bankName || ''}
+                      onChange={e => setFormData({...formData, bankName: e.target.value})}
+                      className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all text-sm font-medium"
+                    />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">ชื่อบัญชี</label>
+                    <input 
+                      type="text" 
+                      placeholder="ระบุชื่อบัญชี"
+                      value={formData.accountName || ''}
+                      onChange={e => setFormData({...formData, accountName: e.target.value})}
+                      className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all text-sm font-medium"
+                    />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">เลขที่บัญชี</label>
+                    <input 
+                      type="text" 
+                      placeholder="XXX-X-XXXXX-X"
+                      value={formData.accountNumber || ''}
+                      onChange={e => setFormData({...formData, accountNumber: e.target.value})}
+                      className="w-full border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none border transition-all text-sm font-black"
+                    />
+                 </div>
                </div>
              </div>
           </div>
@@ -192,9 +210,9 @@ const CompanyProfilePage = () => {
         <div className="bg-slate-50 p-6 flex justify-end">
           <button 
             type="submit" 
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-200 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-blue-600 text-white px-10 py-3.5 rounded-xl font-black text-lg hover:bg-blue-700 shadow-xl hover:shadow-blue-200 transition-all active:scale-95"
           >
-            <Save size={18} />
+            <Save size={20} />
             บันทึกการเปลี่ยนแปลง
           </button>
         </div>
