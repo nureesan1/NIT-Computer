@@ -31,6 +31,8 @@ interface AppContextType {
   updateCompanyProfile: (profile: CompanyProfile) => Promise<boolean>;
   transactions: Transaction[];
   addTransaction: (t: Omit<Transaction, 'id'>) => void;
+  updateTransaction: (id: string, t: Partial<Transaction>) => void;
+  deleteTransaction: (id: string) => void;
   products: Product[];
   addProduct: (p: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
@@ -125,6 +127,16 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     api.addTransaction(newT as Transaction);
   };
 
+  const updateTransaction = (id: string, t: Partial<Transaction>) => {
+    setTransactions(prev => prev.map(item => item.id === id ? { ...item, ...t } : item));
+    api.updateTransaction({ id, ...t });
+  };
+
+  const deleteTransaction = (id: string) => {
+    setTransactions(prev => prev.filter(item => item.id !== id));
+    api.deleteTransaction(id);
+  };
+
   const addProduct = (p: Omit<Product, 'id'>) => {
     const newP = { ...p, id: Math.random().toString(36).substr(2, 9) };
     setProducts(prev => [...prev, newP]);
@@ -167,7 +179,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   return (
     <AppContext.Provider value={{
       user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
-      transactions, addTransaction,
+      transactions, addTransaction, updateTransaction, deleteTransaction,
       products, addProduct, updateProduct, deleteProduct,
       tasks, addTask, updateTask, updateTaskStatus, deleteTask,
       configDatabase

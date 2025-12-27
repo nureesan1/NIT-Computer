@@ -65,6 +65,8 @@ const sendRequest = async (action: string, data: any): Promise<boolean> => {
 export const api = {
   addReceipt: (r: any) => sendRequest('ADD_RECEIPT', r),
   addTransaction: (t: Transaction) => sendRequest('ADD_TRANSACTION', t),
+  updateTransaction: (t: Partial<Transaction> & { id: string }) => sendRequest('UPDATE_TRANSACTION', t),
+  deleteTransaction: (id: string) => sendRequest('DELETE_TRANSACTION', { id }),
   addProduct: (p: Product) => sendRequest('ADD_PRODUCT', p),
   updateProduct: (p: Partial<Product> & { id: string }) => sendRequest('UPDATE_PRODUCT', p),
   deleteProduct: (id: string) => sendRequest('DELETE_PRODUCT', { id }),

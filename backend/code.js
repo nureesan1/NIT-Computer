@@ -1,14 +1,13 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.1)
- * ระบบออกใบเสร็จรับเงินสดและบันทึกรายรับลงตาราง Sheets อัตโนมัติ
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.2)
+ * ระบบจัดการรายรับ-รายจ่าย เพิ่มฟังก์ชันแก้ไขและลบ
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const schema = {
     'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
-    // ลำดับหัวตารางตามที่ผู้ใช้กำหนด: วันที่ | เลขที่ใบเสร็จ | ชื่อผู้ชำระ | ยอดเงิน | วิธีชำระ
     'Receipts': ['date', 'receiptId', 'payerName', 'amount', 'paymentMethod', 'notes'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
     'Tasks': ['id', 'type', 'title', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],
@@ -39,6 +38,8 @@ function doPost(e) {
     switch (action) {
       case 'ADD_RECEIPT': appendRow(ss, 'Receipts', data); break;
       case 'ADD_TRANSACTION': appendRow(ss, 'Transactions', data); break;
+      case 'UPDATE_TRANSACTION': updateRow(ss, 'Transactions', 'id', data.id, data); break;
+      case 'DELETE_TRANSACTION': deleteRow(ss, 'Transactions', 'id', data.id); break;
       case 'ADD_PRODUCT': appendRow(ss, 'Products', data); break;
       case 'UPDATE_PRODUCT': updateRow(ss, 'Products', 'id', data.id, data); break;
       case 'DELETE_PRODUCT': deleteRow(ss, 'Products', 'id', data.id); break;

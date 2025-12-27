@@ -5,16 +5,16 @@ import { Transaction, TransactionType, PaymentMethod } from '../types';
 import { 
   Plus, Download, TrendingUp, TrendingDown, 
   Calendar, ChevronLeft, ChevronRight, PieChart, 
-  ArrowUpRight, ArrowDownRight, Wallet, Filter, X
+  ArrowUpRight, ArrowDownRight, Wallet, Filter, X, Edit2, Trash2, Save
 } from 'lucide-react';
-// Fix: Import only used members and use direct locale import to avoid export errors
 import { format, isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { th } from 'date-fns/locale/th';
 
 const Finance = () => {
-  const { transactions, addTransaction } = useApp();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useApp();
   const [activeTab, setActiveTab] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Date Filtering State
   const [periodMode, setPeriodMode] = useState<'ALL' | 'DAY' | 'MONTH' | 'YEAR'>('MONTH');
@@ -31,23 +31,51 @@ const Finance = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.date && formData.description && formData.amount) {
-      addTransaction(formData as Omit<Transaction, 'id'>);
-      setShowForm(false);
-      setFormData({ 
-        date: format(new Date(), 'yyyy-MM-dd'),
-        type: 'INCOME',
-        paymentMethod: 'TRANSFER', 
-        category: 'งานซ่อม',
-        description: '',
-        amount: 0
-      });
+      if (editingId) {
+        updateTransaction(editingId, formData);
+      } else {
+        addTransaction(formData as Omit<Transaction, 'id'>);
+      }
+      handleCloseForm();
     }
+  };
+
+  const handleEdit = (t: Transaction) => {
+    setFormData({
+      date: t.date,
+      type: t.type,
+      paymentMethod: t.paymentMethod,
+      category: t.category,
+      description: t.description,
+      amount: t.amount
+    });
+    setEditingId(t.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+      deleteTransaction(id);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({ 
+      date: format(new Date(), 'yyyy-MM-dd'),
+      type: 'INCOME',
+      paymentMethod: 'TRANSFER', 
+      category: 'งานซ่อม',
+      description: '',
+      amount: 0
+    });
   };
 
   // Filtering Logic
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // Fix: Use new Date() instead of parseISO to resolve missing export error
       const tDate = new Date(t.date);
       
       // Period Filter
@@ -70,7 +98,7 @@ const Finance = () => {
     return { income, expense, net: income - expense };
   }, [filteredTransactions]);
 
-  const categories = ['งานซ่อม', 'งานติดตั้ง', 'งานระบบ', 'ค่าใช้จ่ายทั่วไป', 'ค่าไฟ', 'ค่าอินเตอร์เน็ต', 'ค่าน้ำ', 'ค่าเช่า'];
+  const categories = ['ขายสินค้า/บริการ', 'งานซ่อม', 'งานติดตั้ง', 'งานระบบ', 'ค่าใช้จ่ายทั่วไป', 'ค่าไฟ', 'ค่าอินเตอร์เน็ต', 'ค่าน้ำ', 'ค่าเช่า', 'เงินเดือน/ค่าแรง', 'ซื้ออุปกรณ์/สต็อก'];
 
   const changePeriod = (delta: number) => {
     const newDate = new Date(selectedDate);
@@ -100,7 +128,7 @@ const Finance = () => {
                 <span className="hidden sm:inline text-xs uppercase tracking-widest">Export Report</span>
             </button>
             <button 
-                onClick={() => setShowForm(!showForm)}
+                onClick={() => showForm ? handleCloseForm() : setShowForm(true)}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg active:scale-95 ${showForm ? 'bg-slate-200 text-slate-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'}`}
             >
                 {showForm ? <X size={20} /> : <Plus size={20} />}
@@ -110,15 +138,17 @@ const Finance = () => {
       </div>
 
       {showForm && (
-        <div className="bg-white p-8 rounded-[2rem] border-2 border-blue-50 shadow-2xl animate-fade-in relative">
+        <div className={`p-8 rounded-[2rem] border-2 shadow-2xl animate-fade-in relative ${editingId ? 'bg-amber-50 border-amber-100 shadow-amber-900/5' : 'bg-white border-blue-50 shadow-blue-900/5'}`}>
           <div className="absolute top-6 right-6">
-             <button onClick={() => setShowForm(false)} className="text-slate-300 hover:text-slate-500 transition-colors">
+             <button onClick={handleCloseForm} className="text-slate-300 hover:text-slate-500 transition-colors">
                <X size={24} />
              </button>
           </div>
           <h3 className="font-black text-xl mb-8 text-slate-800 flex items-center gap-3">
-             <div className="p-2 bg-blue-600 rounded-lg text-white shadow-lg"><Plus size={18}/></div>
-             บันทึกธุรกรรมใหม่
+             <div className={`p-2 rounded-lg text-white shadow-lg ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`}>
+                {editingId ? <Edit2 size={18}/> : <Plus size={18}/>}
+             </div>
+             {editingId ? 'แก้ไขข้อมูลธุรกรรม' : 'บันทึกธุรกรรมใหม่'}
           </h3>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="space-y-2">
@@ -149,6 +179,7 @@ const Finance = () => {
                       type="number" 
                       required
                       min="0"
+                      step="0.01"
                       placeholder="0.00"
                       value={formData.amount || ''}
                       onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})}
@@ -192,8 +223,11 @@ const Finance = () => {
                 </select>
             </div>
             <div className="md:col-span-3 flex justify-end gap-4 mt-4 pt-6 border-t border-slate-100">
-                <button type="button" onClick={() => setShowForm(false)} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
-                <button type="submit" className="px-12 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all">บันทึกรายการ</button>
+                <button type="button" onClick={handleCloseForm} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
+                <button type="submit" className={`px-12 py-3.5 rounded-2xl text-white font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center gap-2 ${editingId ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>
+                   {editingId ? <Save size={20} /> : <Plus size={20} />}
+                   {editingId ? 'บันทึกการแก้ไข' : 'บันทึกรายการ'}
+                </button>
             </div>
           </form>
         </div>
@@ -305,6 +339,7 @@ const Finance = () => {
                         <th className="p-6">หมวดหมู่</th>
                         <th className="p-6">ช่องทาง</th>
                         <th className="p-6 text-right">จำนวนเงิน (THB)</th>
+                        <th className="p-6 text-center">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -312,7 +347,6 @@ const Finance = () => {
                         <tr key={t.id} className="hover:bg-slate-50 transition-colors group">
                             <td className="p-6">
                                <div className="flex flex-col">
-                                  {/* Fix: Use new Date() instead of parseISO */}
                                   <span className="font-black text-slate-700">{format(new Date(t.date), 'dd/MM/yyyy')}</span>
                                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{format(new Date(t.date), 'EEEE', { locale: th })}</span>
                                </div>
@@ -338,11 +372,29 @@ const Finance = () => {
                                     <span className="text-xs font-bold text-slate-400 ml-1">฿</span>
                                 </span>
                             </td>
+                            <td className="p-6">
+                               <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button 
+                                    onClick={() => handleEdit(t)}
+                                    className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                                    title="แก้ไข"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDelete(t.id)}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="ลบ"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                               </div>
+                            </td>
                         </tr>
                     ))}
                     {filteredTransactions.length === 0 && (
                         <tr>
-                            <td colSpan={5} className="p-28 text-center bg-slate-50/20">
+                            <td colSpan={6} className="p-28 text-center bg-slate-50/20">
                                 <div className="flex flex-col items-center gap-4 opacity-30">
                                   <Filter size={64} className="text-slate-300" />
                                   <p className="font-black text-slate-400 uppercase tracking-widest">ไม่พบรายการธุรกรรมในช่วงเวลานี้</p>
