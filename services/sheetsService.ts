@@ -50,8 +50,6 @@ const sendRequest = async (action: string, data: any): Promise<boolean> => {
       body: JSON.stringify({ action, data }),
     });
 
-    // ในกรณีของ GAS Web App ที่มีการ Redirect ข้ามโดเมน
-    // หากได้รับสถานะ OK หรือ Opaque มักหมายถึงข้อมูลถูกส่งไปถึงมือ Server แล้ว
     if (response.ok || response.type === 'opaque') {
       return true;
     }
@@ -60,13 +58,12 @@ const sendRequest = async (action: string, data: any): Promise<boolean> => {
     return result.status === 'success';
   } catch (error) {
     console.error(`API Request Error [${action}]:`, error);
-    // กรณีบันทึกสำเร็จแต่ติด CORS Error ตอนขากลับ มักจะยังบันทึกได้อยู่
-    // ให้ตรวจสอบใน Sheets หากมั่นใจว่าเน็ตเวิร์กทำงานปกติ
     return false;
   }
 };
 
 export const api = {
+  addReceipt: (r: any) => sendRequest('ADD_RECEIPT', r),
   addTransaction: (t: Transaction) => sendRequest('ADD_TRANSACTION', t),
   addProduct: (p: Product) => sendRequest('ADD_PRODUCT', p),
   updateProduct: (p: Partial<Product> & { id: string }) => sendRequest('UPDATE_PRODUCT', p),

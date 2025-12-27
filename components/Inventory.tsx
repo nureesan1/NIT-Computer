@@ -1,256 +1,462 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Product } from '../types';
-import { Plus, Minus, Search, AlertTriangle, X, Edit2, Trash2, Save, Package, FileText } from 'lucide-react';
+import { api } from '../services/sheetsService';
+import { 
+  Receipt, 
+  Plus, 
+  Trash2, 
+  Printer, 
+  CheckCircle2, 
+  User, 
+  Calendar, 
+  FileText, 
+  Banknote, 
+  ArrowLeft,
+  PlusCircle,
+  FileSpreadsheet,
+  Info,
+  Loader2
+} from 'lucide-react';
+import { format } from 'date-fns';
+
+interface ReceiptLineItem {
+  id: string;
+  name: string;
+  quantity: number;
+  pricePerUnit: number;
+}
 
 const Inventory = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
+  const { companyProfile, addTransaction } = useApp();
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   // Form State
-  const [formData, setFormData] = useState<Partial<Product>>({
-    code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5
-  });
+  const [payerName, setPayerName] = useState('');
+  const [receiptDate, setReceiptDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [notes, setNotes] = useState('');
+  const [lineItems, setLineItems] = useState<ReceiptLineItem[]>([
+    { id: '1', name: '', quantity: 1, pricePerUnit: 0 }
+  ]);
+  
+  const [issuedReceipt, setIssuedReceipt] = useState<{
+    id: string;
+    payerName: string;
+    date: string;
+    items: ReceiptLineItem[];
+    total: number;
+    notes: string;
+  } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.name && formData.cost !== undefined) {
-      if (editingId) {
-        updateProduct(editingId, formData);
-        setEditingId(null);
-      } else {
-        addProduct(formData as Omit<Product, 'id'>);
+  // Helper: Convert Number to Thai Baht Text
+  const toThaiBaht = (amount: number): string => {
+    const numberText = [ "ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า" ];
+    const positionText = [ "", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน" ];
+    
+    const amountStr = amount.toFixed(2).split(".");
+    const integerPart = amountStr[0];
+    const decimalPart = amountStr[1];
+    
+    if (amount === 0) return "ศูนย์บาทถ้วน";
+    
+    let bahtStr = "";
+    for (let i = 0; i < integerPart.length; i++) {
+      const n = parseInt(integerPart[i]);
+      if (n !== 0) {
+        if (i === integerPart.length - 1 && n === 1 && integerPart.length > 1) {
+          bahtStr += "เอ็ด";
+        } else if (i === integerPart.length - 2 && n === 2) {
+          bahtStr += "ยี่";
+        } else if (i === integerPart.length - 2 && n === 1) {
+          bahtStr += "";
+        } else {
+          bahtStr += numberText[n];
+        }
+        bahtStr += positionText[integerPart.length - i - 1];
       }
-      setShowForm(false);
-      setFormData({ code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5 });
+    }
+    bahtStr += "บาท";
+    
+    if (parseInt(decimalPart) === 0) {
+      bahtStr += "ถ้วน";
+    } else {
+      if (parseInt(decimalPart[0]) !== 0) {
+        bahtStr += numberText[parseInt(decimalPart[0])] + (decimalPart[0] === '1' ? "" : "สิบ");
+      }
+      if (parseInt(decimalPart[1]) !== 0) {
+        bahtStr += numberText[parseInt(decimalPart[1])];
+      }
+      bahtStr += "สตางค์";
+    }
+    return bahtStr;
+  };
+
+  const handleAddItem = () => {
+    setLineItems([...lineItems, { id: Date.now().toString(), name: '', quantity: 1, pricePerUnit: 0 }]);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter(item => item.id !== id));
     }
   };
 
-  const startEdit = (product: Product) => {
-    setFormData(product);
-    setEditingId(product.id);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const updateItem = (id: string, field: keyof ReceiptLineItem, value: any) => {
+    setLineItems(lineItems.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setShowForm(false);
-    setFormData({ code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5 });
+  const totalAmount = useMemo(() => {
+    return lineItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+  }, [lineItems]);
+
+  const handleProcessReceipt = async () => {
+    if (!payerName || lineItems.some(i => !i.name || i.pricePerUnit <= 0)) {
+      alert('กรุณากรอกชื่อผู้ชำระและรายการสินค้าให้ครบถ้วน');
+      return;
+    }
+
+    setIsProcessing(true);
+    const receiptId = `CSH-${format(new Date(), 'yyyyMMdd')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      /**
+       * 1. บันทึกลงชีต Receipts (ตารางประวัติใบเสร็จ)
+       * ลำดับตามชีต: วันที่ | เลขที่ใบเสร็จ | ชื่อผู้ชำระ | ยอดเงิน | วิธีชำระ
+       */
+      const receiptData = {
+        date: receiptDate,
+        receiptId: receiptId,
+        payerName: payerName,
+        amount: totalAmount,
+        paymentMethod: 'CASH',
+        notes: notes
+      };
+      await api.addReceipt(receiptData);
+
+      /**
+       * 2. บันทึกลงชีต Transactions (ตารางรายรับ-จ่ายหลัก)
+       * เพื่อให้ยอดเงินไปปรากฏใน Dashboard และรายงานการเงิน
+       */
+      addTransaction({
+        date: receiptDate,
+        description: `ใบเสร็จเลขที่ ${receiptId} - ${payerName}`,
+        category: 'ขายสินค้า/บริการ',
+        amount: totalAmount,
+        type: 'INCOME',
+        paymentMethod: 'CASH'
+      });
+
+      setIssuedReceipt({
+        id: receiptId,
+        payerName,
+        date: receiptDate,
+        items: [...lineItems],
+        total: totalAmount,
+        notes
+      });
+    } catch (error) {
+      console.error("Save Error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleQuickAdjust = (id: string, currentQty: number, delta: number) => {
-    updateProduct(id, { quantity: Math.max(0, currentQty + delta) });
+  const resetForm = () => {
+    setPayerName('');
+    setReceiptDate(format(new Date(), 'yyyy-MM-dd'));
+    setNotes('');
+    setLineItems([{ id: '1', name: '', quantity: 1, pricePerUnit: 0 }]);
+    setIssuedReceipt(null);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <div className="space-y-6 relative">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">ระบบสต๊อกสินค้า</h2>
-          <p className="text-slate-500">จัดการสินค้าและคำนวณราคา</p>
-        </div>
-        <div className="flex gap-3">
-            <button 
-                onClick={() => { 
-                  if (showForm && !editingId) setShowForm(false);
-                  else {
-                    setEditingId(null);
-                    setFormData({ code: '', name: '', cost: 0, quantity: 0, unit: 'ชิ้น', minStockThreshold: 5 });
-                    setShowForm(true);
-                  }
-                }}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg active:scale-95 ${showForm && !editingId ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'}`}
-            >
-                {showForm && !editingId ? <X size={20} /> : <Plus size={20} />}
-                {showForm && !editingId ? 'ยกเลิก' : 'เพิ่มสินค้า'}
-            </button>
-        </div>
-      </div>
-
-      {/* Product Form (Add/Edit) */}
-      {showForm && (
-        <div className={`p-8 rounded-2xl border-2 shadow-2xl animate-fade-in relative transition-all duration-300 ${editingId ? 'bg-amber-50/50 border-amber-200 shadow-amber-900/10' : 'bg-white border-blue-100 shadow-slate-900/5'}`}>
-           <div className="flex justify-between items-center mb-8">
-              <div className={`px-4 py-2 rounded-xl border-2 flex items-center gap-3 ${editingId ? 'bg-white border-amber-400 text-slate-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                {editingId ? <Edit2 className="text-amber-600" size={20} /> : <Package className="text-blue-600" size={20} />}
-                <h3 className="font-bold text-lg">
-                  {editingId ? `แก้ไขข้อมูลสินค้า: ${formData.code}` : 'เพิ่มสินค้าใหม่ลงในสต๊อก'}
-                </h3>
-              </div>
-              <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-white rounded-full transition-colors">
-                <X size={28} />
-              </button>
-           </div>
-           
-           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">รหัสสินค้า (SKU)</label>
-               <input type="text" placeholder="SKU-001" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
-             </div>
-             <div className="space-y-2 md:col-span-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ชื่อสินค้า *</label>
-               <div className="relative group">
-                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size={20} />
-                 <input type="text" placeholder="ระบุชื่อสินค้า..." className="w-full border-slate-200 border-2 p-3.5 pl-12 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-               </div>
-             </div>
-             <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ต้นทุน (บาท)</label>
-               <input type="number" placeholder="0" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: parseFloat(e.target.value)})} required />
-             </div>
-             <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">จำนวนตั้งต้น</label>
-               <input type="number" placeholder="0" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.quantity || ''} onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value)})} required />
-             </div>
-             <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">หน่วยนับ</label>
-               <input type="text" placeholder="ชิ้น, เมตร..." className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
-             </div>
-             <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">จุดสั่งซื้อขั้นต่ำ</label>
-               <input type="number" placeholder="5" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.minStockThreshold || ''} onChange={e => setFormData({...formData, minStockThreshold: parseFloat(e.target.value)})} />
-             </div>
-             <div className="md:col-span-3 flex justify-end gap-4 mt-4 pt-6 border-t border-slate-100">
-                <button type="button" onClick={cancelEdit} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
-                <button type="submit" className={`px-10 py-3 rounded-2xl text-white shadow-xl transition-all active:scale-95 font-black flex items-center gap-2 ${editingId ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>
-                   {editingId ? <Save size={18} /> : <Plus size={18} />}
-                   {editingId ? 'บันทึกการแก้ไข' : 'ยืนยันเพิ่มสินค้า'}
-                </button>
-             </div>
-           </form>
-        </div>
-      )}
-
-      {/* Search Bar */}
-      <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={24} />
-        <input 
-            type="text" 
-            placeholder="ค้นหาสินค้า (ชื่อ, รหัส)..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-4 bg-white border-2 border-slate-50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-sm transition-all font-medium"
-        />
-      </div>
-
-      {/* Product Table */}
-      <div className="bg-white rounded-[2rem] shadow-sm border-2 border-slate-50 overflow-hidden">
-        <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50/50 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-slate-100">
-                    <tr>
-                        <th className="p-6">รหัส</th>
-                        <th className="p-6">ชื่อสินค้า</th>
-                        <th className="p-6">ต้นทุน</th>
-                        <th className="p-6 text-center">คงเหลือ (เพิ่ม/ลด)</th>
-                        <th className="p-6 text-center">สถานะ</th>
-                        <th className="p-6 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                    {filteredProducts.map((p, idx) => (
-                        <tr key={p.id} className={`hover:bg-slate-50/50 transition-colors group ${editingId === p.id ? 'bg-amber-50/50' : ''}`}>
-                            <td className="p-6 text-slate-400 font-black text-xs">
-                              {p.code || idx + 1}
-                            </td>
-                            <td className="p-6 font-bold text-slate-800 text-lg">{p.name}</td>
-                            <td className="p-6 font-black text-slate-700">{p.cost.toLocaleString()} ฿</td>
-                            <td className="p-6">
-                                <div className="flex items-center justify-center gap-4">
-                                    <button 
-                                        onClick={() => handleQuickAdjust(p.id, p.quantity, -1)}
-                                        className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-red-200 text-slate-400 hover:text-red-600 flex items-center justify-center transition-all active:scale-90"
-                                        title="ลดจำนวน"
-                                    >
-                                        <Minus size={18} />
-                                    </button>
-                                    <div className="flex flex-col items-center min-w-[80px]">
-                                        <span className="font-black text-2xl text-slate-800 leading-none">{p.quantity}</span>
-                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5">{p.unit}</span>
-                                    </div>
-                                    <button 
-                                        onClick={() => handleQuickAdjust(p.id, p.quantity, 1)}
-                                        className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-green-200 text-slate-400 hover:text-green-600 flex items-center justify-center transition-all active:scale-90"
-                                        title="เพิ่มจำนวน"
-                                    >
-                                        <Plus size={18} />
-                                    </button>
-                                </div>
-                            </td>
-                            <td className="p-6">
-                                <div className="flex justify-center">
-                                    {p.quantity <= p.minStockThreshold ? (
-                                        <span className="flex items-center gap-1.5 text-[10px] px-3 py-1.5 bg-red-100 text-red-600 rounded-xl font-black uppercase tracking-widest animate-pulse border border-red-200">
-                                            <AlertTriangle size={14} /> ต่ำกว่าเกณฑ์
-                                        </span>
-                                    ) : (
-                                        <span className="text-[10px] px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl font-black uppercase tracking-widest border border-emerald-100">ปกติ</span>
-                                    )}
-                                </div>
-                            </td>
-                            <td className="p-6">
-                                <div className="flex items-center justify-center gap-3">
-                                    <button 
-                                        onClick={() => startEdit(p)}
-                                        className="p-3 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-100 rounded-2xl transition-all active:scale-90 shadow-sm"
-                                        title="แก้ไขข้อมูล"
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            if (confirm('ยืนยันการลบสินค้าชิ้นนี้ออกจากระบบถาวร?')) {
-                                                deleteProduct(p.id);
-                                            }
-                                        }}
-                                        className="p-3 text-slate-400 hover:text-red-600 bg-white hover:bg-red-50 border border-slate-100 rounded-2xl transition-all active:scale-90 shadow-sm"
-                                        title="ลบสินค้า"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                    {filteredProducts.length === 0 && (
-                        <tr><td colSpan={6} className="p-20 text-center">
-                            <Package size={64} className="mx-auto text-slate-100 mb-6" />
-                            <p className="text-slate-400 font-bold text-xl italic uppercase tracking-widest">ไม่พบสินค้าในสต็อก</p>
-                        </td></tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
-      </div>
-      
-      {/* Stock Summary Info Bar */}
-      <div className="bg-slate-900 text-white p-6 rounded-[2rem] shadow-2xl flex items-center justify-between border border-slate-800">
-          <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-600 rounded-2xl">
-                  <Package size={24} />
+  if (issuedReceipt) {
+    return (
+      <div className="bg-slate-50 min-h-screen animate-fade-in p-4 lg:p-10">
+        <div className="print:hidden max-w-3xl mx-auto mb-8 flex justify-between items-center bg-white p-6 rounded-[2rem] border border-emerald-100 shadow-xl shadow-emerald-900/5">
+           <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-lg">
+                 <CheckCircle2 size={24} />
               </div>
               <div>
-                  <h5 className="font-black text-sm uppercase tracking-widest">สรุปสต๊อกทั้งหมด</h5>
-                  <p className="text-slate-400 text-xs mt-0.5">รวมสินค้า {products.length} รายการ | สินค้าใกล้หมด {products.filter(p => p.quantity <= p.minStockThreshold).length} รายการ</p>
+                 <h2 className="font-black text-slate-800">ออกใบเสร็จสำเร็จ</h2>
+                 <p className="text-slate-500 text-sm font-bold">บันทึกลงชีต 'Receipts' และ 'รายรับ' เรียบร้อยแล้ว</p>
               </div>
+           </div>
+           <div className="flex gap-3">
+              <button onClick={resetForm} className="px-6 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2">
+                <ArrowLeft size={18} /> เขียนใบใหม่
+              </button>
+              <button onClick={() => window.print()} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2">
+                 <Printer size={18} /> พิมพ์ใบเสร็จ
+              </button>
+           </div>
+        </div>
+
+        {/* Professional Document Layout */}
+        <div className="max-w-3xl mx-auto bg-white p-12 border-2 border-slate-100 rounded-[2.5rem] shadow-sm relative overflow-hidden" id="receipt-print">
+          <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
+          
+          <div className="flex justify-between items-start mb-10">
+             <div className="flex gap-5">
+                <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-900/10">
+                   <Receipt size={40} />
+                </div>
+                <div>
+                   <h1 className="text-2xl font-black text-slate-900 leading-tight">{companyProfile.name}</h1>
+                   <p className="text-xs text-slate-500 mt-2 max-w-[300px] leading-relaxed font-semibold">{companyProfile.address}</p>
+                   <p className="text-[10px] text-slate-400 font-black mt-2 uppercase tracking-widest">โทร: {companyProfile.phone}</p>
+                </div>
+             </div>
+             <div className="text-right">
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">ใบเสร็จรับเงิน</h2>
+                <p className="text-xs text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Cash Receipt</p>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                   <p className="text-[10px] font-black text-slate-400 uppercase">เลขที่ใบเสร็จ / No.</p>
+                   <p className="font-mono font-black text-blue-600 text-lg">{issuedReceipt.id}</p>
+                </div>
+             </div>
           </div>
-          <div className="flex gap-4">
-              <div className="text-right">
-                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">มูลค่าสต๊อกรวม (ต้นทุน)</p>
-                  <p className="text-blue-400 font-black text-xl leading-none mt-1">
-                    {products.reduce((acc, p) => acc + (p.cost * p.quantity), 0).toLocaleString()} ฿
-                  </p>
-              </div>
+
+          <div className="grid grid-cols-2 gap-8 mb-10 border-t border-b border-slate-100 py-8">
+             <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ได้รับเงินจาก / Payer Name</p>
+                <p className="font-black text-slate-800 text-xl border-b-2 border-slate-50 pb-1">{issuedReceipt.payerName}</p>
+             </div>
+             <div className="text-right">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">วันที่ออกใบเสร็จ / Date</p>
+                <p className="font-black text-slate-800 text-xl border-b-2 border-slate-50 pb-1">{format(new Date(issuedReceipt.date), 'dd/MM/yyyy')}</p>
+             </div>
           </div>
+
+          <table className="w-full mb-10">
+             <thead className="bg-slate-900 text-white">
+                <tr className="text-[10px] uppercase font-black tracking-widest">
+                   <th className="py-4 px-6 text-left rounded-l-2xl">ลำดับ / รายการสินค้า / บริการ</th>
+                   <th className="py-4 px-6 text-center">จำนวน / Qty</th>
+                   <th className="py-4 px-6 text-right">หน่วยละ</th>
+                   <th className="py-4 px-6 text-right rounded-r-2xl">รวมเงิน / Total</th>
+                </tr>
+             </thead>
+             <tbody className="divide-y divide-slate-100">
+                {issuedReceipt.items.map((item, idx) => (
+                   <tr key={idx} className="text-sm">
+                      <td className="py-5 px-6 font-bold text-slate-700">
+                        <span className="text-slate-300 mr-4 font-black">{idx + 1}</span>
+                        {item.name}
+                      </td>
+                      <td className="py-5 px-6 text-center font-black text-slate-500">{item.quantity}</td>
+                      <td className="py-5 px-6 text-right font-bold text-slate-600">{item.pricePerUnit.toLocaleString()}</td>
+                      <td className="py-5 px-6 text-right font-black text-slate-900">{(item.quantity * item.pricePerUnit).toLocaleString()}</td>
+                   </tr>
+                ))}
+             </tbody>
+          </table>
+
+          <div className="flex justify-between items-start gap-10">
+             <div className="flex-1 space-y-6">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">จำนวนเงิน (ตัวอักษร) / Total in Words</p>
+                   <p className="font-black text-slate-800 text-lg">({toThaiBaht(issuedReceipt.total)})</p>
+                </div>
+                <div className="px-6 flex items-center gap-3">
+                   <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+                      <Banknote size={20} />
+                   </div>
+                   <p className="text-sm font-black text-emerald-600 uppercase tracking-widest">ชำระด้วยเงินสด (Paid by Cash)</p>
+                </div>
+                {issuedReceipt.notes && (
+                   <div className="px-6 mt-4">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">หมายเหตุ / Notes</p>
+                      <p className="text-sm text-slate-500 italic font-medium">{issuedReceipt.notes}</p>
+                   </div>
+                )}
+             </div>
+
+             <div className="w-64 space-y-3">
+                <div className="flex justify-between items-center bg-slate-900 text-white p-6 rounded-3xl shadow-xl shadow-slate-900/10">
+                   <span className="font-black text-xs uppercase tracking-widest opacity-60">ยอดรวมสุทธิ</span>
+                   <span className="text-3xl font-black">{issuedReceipt.total.toLocaleString()} <span className="text-sm">฿</span></span>
+                </div>
+                <div className="pt-20 text-center space-y-4">
+                   <div className="border-b-2 border-slate-200 w-full pb-2"></div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ผู้รับเงิน / Authorized Signature</p>
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800">ระบบออกใบเสร็จรับเงินสด</h2>
+          <p className="text-slate-500 font-medium">จัดการเอกสารใบเสร็จและบันทึกรายรับลงระบบบัญชีอัตโนมัติ</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-black text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 shadow-sm">
+           <Banknote size={16} /> บันทึก 2 ต่อ (ใบเสร็จ + รายรับ)
+        </div>
+      </div>
+
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-8 lg:p-10 space-y-10">
+          
+          <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex gap-4 items-start">
+            <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-blue-900 font-medium">
+               เมื่อกดปุ่มบันทึก ระบบจะส่งข้อมูลไปที่ชีต <strong>Receipts</strong> (สำหรับดูประวัติใบเสร็จ) และชีต <strong>Transactions</strong> (สำหรับสรุปรายรับร้าน) โดยอัตโนมัติ
+            </div>
+          </div>
+
+          {/* Section 1: Customer Info */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                   <User size={14} className="text-blue-500" /> ชื่อผู้ชำระเงิน *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="ระบุชื่อลูกค้า หรือ ชื่อบริษัท..."
+                  value={payerName}
+                  onChange={e => setPayerName(e.target.value)}
+                  className="w-full border-slate-200 border-2 rounded-2xl p-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-lg"
+                  disabled={isProcessing}
+                />
+             </div>
+             <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                   <Calendar size={14} className="text-blue-500" /> วันที่ออกใบเสร็จ *
+                </label>
+                <input 
+                  type="date" 
+                  value={receiptDate}
+                  onChange={e => setReceiptDate(e.target.value)}
+                  className="w-full border-slate-200 border-2 rounded-2xl p-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-lg bg-white"
+                  disabled={isProcessing}
+                />
+             </div>
+          </section>
+
+          {/* Section 2: Items List */}
+          <section className="space-y-4">
+             <div className="flex justify-between items-center px-1">
+                <h3 className="flex items-center gap-2 text-sm font-black text-slate-800 uppercase tracking-widest">
+                   <FileText size={16} className="text-blue-500" /> รายการสินค้า / บริการ
+                </h3>
+                <button 
+                  onClick={handleAddItem}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 bg-blue-50 text-blue-600 font-black text-xs hover:bg-blue-100 px-5 py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                >
+                   <PlusCircle size={16} /> เพิ่มรายการใหม่
+                </button>
+             </div>
+
+             <div className="space-y-3">
+                {lineItems.map((item, index) => (
+                   <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50 p-6 rounded-3xl border border-slate-100 group animate-slide-in hover:border-blue-200 transition-colors">
+                      <div className="md:col-span-1 flex items-center justify-center font-black text-slate-300 text-lg">
+                         {index + 1}
+                      </div>
+                      <div className="md:col-span-5 space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ชื่อรายการ</label>
+                         <input 
+                           type="text" 
+                           placeholder="เช่น ค่าซ่อมคอมพิวเตอร์..."
+                           value={item.name}
+                           onChange={e => updateItem(item.id, 'name', e.target.value)}
+                           className="w-full border-slate-200 border-2 rounded-xl p-3 focus:border-blue-500 outline-none font-bold shadow-sm"
+                           disabled={isProcessing}
+                         />
+                      </div>
+                      <div className="md:col-span-2 space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center block">จำนวน</label>
+                         <input 
+                           type="number" 
+                           value={item.quantity}
+                           onChange={e => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                           className="w-full border-slate-200 border-2 rounded-xl p-3 focus:border-blue-500 outline-none font-black text-center shadow-sm"
+                           disabled={isProcessing}
+                         />
+                      </div>
+                      <div className="md:col-span-3 space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right block">ราคาต่อหน่วย</label>
+                         <div className="relative">
+                            <input 
+                              type="number" 
+                              value={item.pricePerUnit || ''}
+                              onChange={e => updateItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                              className="w-full border-slate-200 border-2 rounded-xl p-3 focus:border-blue-500 outline-none font-black text-right pr-8 shadow-sm"
+                              disabled={isProcessing}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-xs">฿</span>
+                         </div>
+                      </div>
+                      <div className="md:col-span-1 flex justify-center pb-1">
+                         <button 
+                           onClick={() => handleRemoveItem(item.id)}
+                           disabled={isProcessing}
+                           className="text-slate-300 hover:text-red-500 p-2.5 rounded-full hover:bg-red-50 transition-all border border-transparent hover:border-red-100 disabled:opacity-30"
+                         >
+                            <Trash2 size={22} />
+                         </button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </section>
+
+          {/* Section 3: Summary & Footer */}
+          <section className="pt-8 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-3 gap-10">
+             <div className="lg:col-span-2 space-y-4">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">หมายเหตุ (Notes)</label>
+                <textarea 
+                  rows={4}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="ระบุข้อมูลเพิ่มเติม..."
+                  className="w-full border-slate-200 border-2 rounded-3xl p-5 focus:border-blue-500 outline-none transition-all font-medium resize-none shadow-sm"
+                  disabled={isProcessing}
+                />
+             </div>
+             
+             <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white space-y-8 shadow-2xl border border-slate-800">
+                <div className="space-y-2">
+                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">ยอดรวมสุทธิ</p>
+                   <p className="text-5xl font-black text-blue-400 leading-tight">
+                     {totalAmount.toLocaleString()} 
+                     <span className="text-lg font-bold ml-2 text-slate-500">฿</span>
+                   </p>
+                   <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                      <p className="text-xs font-bold text-blue-100">({toThaiBaht(totalAmount)})</p>
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   <div className="flex items-center gap-3 text-xs font-black text-emerald-400 bg-emerald-950/30 px-5 py-3 rounded-2xl border border-emerald-900/50">
+                      <Banknote size={20} /> ชำระด้วยเงินสด (Cash)
+                   </div>
+                   <button 
+                     onClick={handleProcessReceipt}
+                     disabled={isProcessing}
+                     className="w-full bg-blue-600 py-5 rounded-3xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70"
+                   >
+                      {isProcessing ? (
+                        <><Loader2 className="animate-spin" size={24} /> กำลังบันทึก...</>
+                      ) : (
+                        <><Receipt size={24} /> ออกใบเสร็จและบันทึก</>
+                      )}
+                   </button>
+                </div>
+             </div>
+          </section>
+
+        </div>
       </div>
     </div>
   );

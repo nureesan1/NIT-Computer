@@ -5,35 +5,19 @@ import { api, fetchInitialData, isSheetsConfigured, saveApiUrl } from '../servic
 
 const DEFAULT_COMPANY: CompanyProfile = {
   name: 'NIT Consulting Solution LTD.',
-  address: '123 Tech Park, Bangkok 10250',
-  phone: '02-123-4567',
+  address: '42/63 ม.3 ต.สะเตงนอก อ.เมือง จ.ยะลา 95000',
+  phone: '081-XXX-XXXX',
   email: 'support@nit.co.th',
-  taxId: '0105551234567',
+  taxId: '095XXXXXXXXXX',
   website: 'www.nit.co.th',
   bankName: 'กสิกรไทย',
   accountName: 'บจก. เอ็น ไอ ที คอนซัลติ้ง โซลูชั่น',
-  accountNumber: '123-4-56789-0'
+  accountNumber: 'XXX-X-XXXXX-X'
 };
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: '1', date: '2023-10-25', description: 'ซ่อมคอมพิวเตอร์', category: 'Service', amount: 1500, type: 'INCOME', paymentMethod: 'CASH' },
-];
-
-const MOCK_PRODUCTS: Product[] = [
-  { id: '1', code: 'P001', name: 'สาย LAN CAT6', cost: 100, quantity: 50, unit: 'เมตร', minStockThreshold: 20 },
-];
-
-const MOCK_TASKS: Task[] = [
-  { 
-    id: 'JOB-2024-8192', 
-    type: 'REPAIR', 
-    title: 'ซ่อม Notebook เปิดไม่ติด', 
-    startDate: '2023-10-28', 
-    status: 'IN_PROGRESS', 
-    assignee: 'ช่างหนึ่ง',
-    customer: { name: 'คุณสมชาย ใจดี', phone: '081-234-5678' }
-  },
-];
+const MOCK_TRANSACTIONS: Transaction[] = [];
+const MOCK_PRODUCTS: Product[] = [];
+const MOCK_TASKS: Task[] = [];
 
 interface AppContextType {
   user: User;
@@ -107,14 +91,10 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   }, []);
 
   const updateCompanyProfile = async (profile: CompanyProfile): Promise<boolean> => {
-    // บันทึกลง local ทันที
     setCompanyProfile(profile);
     localStorage.setItem('company_profile', JSON.stringify(profile));
-    
-    // พยายามบันทึกลง Cloud หากมีการตั้งค่า URL ไว้
     if (isSheetsConfigured()) {
-      const success = await api.updateCompanyProfile(profile);
-      return success;
+      return await api.updateCompanyProfile(profile);
     }
     return true; 
   };
