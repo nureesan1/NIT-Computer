@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet, QrCode, CloudCheck, CloudOff, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Building2, Save, Mail, Phone, MapPin, Globe, CreditCard, Image as ImageIcon, Wallet, QrCode, CheckCircle, CloudOff, Loader2, AlertCircle, Info } from 'lucide-react';
 
 const CompanyProfilePage = () => {
   const { companyProfile, updateCompanyProfile, isDbConnected } = useApp();
@@ -80,7 +80,7 @@ const CompanyProfilePage = () => {
           <div className="flex items-center gap-3">
             {saveStatus === 'SUCCESS' && (
               <span className="text-emerald-600 text-sm font-bold flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-fade-in shadow-sm">
-                <CloudCheck size={18} /> บันทึกสำเร็จ
+                <CheckCircle size={18} /> บันทึกสำเร็จ
               </span>
             )}
             {saveStatus === 'ERROR' && (
@@ -242,8 +242,8 @@ const CompanyProfilePage = () => {
                 <CloudOff size={16} /> Offline Mode
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest bg-emerald-950/30 px-4 py-2 rounded-xl border border-emerald-900/50">
-                <CloudCheck size={16} /> Cloud Sync Active
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest bg-emerald-950/30 px-4 py-2 rounded-xl border border-emerald-100/10">
+                <CheckCircle size={16} /> Cloud Sync Active
               </div>
             )}
           </div>
