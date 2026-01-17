@@ -17,23 +17,25 @@ import {
   Settings,
   Building2,
   Calculator,
-  Receipt
+  Receipt,
+  ShieldCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, switchRole, logout, isDbConnected, isLoading } = useApp();
+  const { user, logout, isDbConnected, isLoading } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
   const menuItems = [
-    { icon: <LayoutDashboard size={20} />, label: 'ภาพรวมระบบ', path: '/', allowed: [UserRole.ADMIN, UserRole.MANAGER] },
-    { icon: <ClipboardList size={20} />, label: 'รับงานลูกค้า (Intake)', path: '/intake', allowed: [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.MANAGER] },
-    { icon: <CalendarDays size={20} />, label: 'ตารางงาน', path: '/calendar', allowed: [UserRole.ADMIN, UserRole.TECHNICIAN, UserRole.MANAGER] },
-    { icon: <Wallet size={20} />, label: 'การเงิน (รายรับ-จ่าย)', path: '/finance', allowed: [UserRole.ADMIN, UserRole.ACCOUNTING, UserRole.MANAGER] },
-    { icon: <Receipt size={20} />, label: 'ออกใบเสร็จรับเงินสด', path: '/inventory', allowed: [UserRole.ADMIN, UserRole.STOCK, UserRole.MANAGER, UserRole.ACCOUNTING] },
-    { icon: <Calculator size={20} />, label: 'คำนวณราคาขาย', path: '/calculator', allowed: [UserRole.ADMIN, UserRole.MANAGER, UserRole.STOCK, UserRole.ACCOUNTING] },
-    { icon: <Building2 size={20} />, label: 'โปรไฟล์บริษัท', path: '/company', allowed: [UserRole.ADMIN, UserRole.MANAGER] },
+    { icon: <LayoutDashboard size={20} />, label: 'ภาพรวมระบบ', path: '/', allowed: [UserRole.ADMIN] },
+    { icon: <ClipboardList size={20} />, label: 'รับงานลูกค้า (Intake)', path: '/intake', allowed: [UserRole.ADMIN] },
+    { icon: <CalendarDays size={20} />, label: 'ตารางงาน', path: '/calendar', allowed: [UserRole.ADMIN] },
+    { icon: <Wallet size={20} />, label: 'การเงิน (รายรับ-จ่าย)', path: '/finance', allowed: [UserRole.ADMIN] },
+    { icon: <Receipt size={20} />, label: 'ออกใบเสร็จรับเงินสด', path: '/inventory', allowed: [UserRole.ADMIN] },
+    { icon: <ShieldCheck size={20} />, label: 'บันทึกประกันสินค้า', path: '/warranty', allowed: [UserRole.ADMIN] },
+    { icon: <Calculator size={20} />, label: 'คำนวณราคาขาย', path: '/calculator', allowed: [UserRole.ADMIN] },
+    { icon: <Building2 size={20} />, label: 'โปรไฟล์บริษัท', path: '/company', allowed: [UserRole.ADMIN] },
     { icon: <Settings size={20} />, label: 'ตั้งค่าระบบ', path: '/settings', allowed: [UserRole.ADMIN] },
   ];
 
@@ -111,9 +113,9 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             </div>
         </div>
 
-        {/* User Info & Role Switcher */}
+        {/* User Info */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-          <div className="flex items-center gap-3 mb-4 px-1">
+          <div className="flex items-center gap-3 px-1">
              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
                 <UserCircle size={24} />
              </div>
@@ -121,20 +123,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                 <p className="font-bold text-sm truncate">{user.name}</p>
                 <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{user.role}</p>
              </div>
-          </div>
-          <div className="relative group">
-            <select 
-              value={user.role}
-              onChange={(e) => switchRole(e.target.value as UserRole)}
-              className="w-full bg-slate-800 text-slate-300 text-xs rounded-lg p-2.5 outline-none border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
-            >
-              {Object.values(UserRole).map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-              <Menu size={12} />
-            </div>
           </div>
         </div>
       </aside>

@@ -1,7 +1,7 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.2)
- * ระบบจัดการรายรับ-รายจ่าย เพิ่มฟังก์ชันแก้ไขและลบ
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.4)
+ * เพิ่มฟิลด์ Brand และ Model ในตาราง Tasks
  */
 
 function doGet(e) {
@@ -10,8 +10,9 @@ function doGet(e) {
     'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
     'Receipts': ['date', 'receiptId', 'payerName', 'amount', 'paymentMethod', 'notes'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
-    'Tasks': ['id', 'type', 'title', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],
-    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode']
+    'Tasks': ['id', 'type', 'title', 'brand', 'model', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],
+    'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode'],
+    'Warranties': ['id', 'purchaseDate', 'productName', 'modelCode', 'serialNumber', 'quantity', 'vendor', 'price', 'duration', 'startDate', 'expiryDate', 'conditions', 'hasDocuments']
   };
 
   const responseData = {};
@@ -50,6 +51,9 @@ function doPost(e) {
       case 'UPDATE_TASK_STATUS': updateRow(ss, 'Tasks', 'id', data.id, { status: data.status }); break;
       case 'DELETE_TASK': deleteRow(ss, 'Tasks', 'id', data.id); break;
       case 'UPDATE_COMPANY_PROFILE': saveCompanyProfile(ss, data); break;
+      case 'ADD_WARRANTY': appendRow(ss, 'Warranties', data); break;
+      case 'UPDATE_WARRANTY': updateRow(ss, 'Warranties', 'id', data.id, data); break;
+      case 'DELETE_WARRANTY': deleteRow(ss, 'Warranties', 'id', data.id); break;
       default: throw new Error('Unknown action: ' + action);
     }
     

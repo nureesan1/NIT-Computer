@@ -12,6 +12,7 @@ import Login from './components/Login';
 import Settings from './components/Settings';
 import CompanyProfilePage from './components/CompanyProfile';
 import PricingCalculator from './components/PricingCalculator';
+import WarrantyManagement from './components/WarrantyManagement';
 
 const AppContent = () => {
   const { isAuthenticated } = useApp();
@@ -32,6 +33,7 @@ const AppContent = () => {
           <Route path="/intake" element={<JobIntake />} />
           <Route path="/company" element={<CompanyProfilePage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/warranty" element={<WarrantyManagement />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

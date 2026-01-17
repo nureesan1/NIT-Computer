@@ -1,6 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
-import { Transaction, Product, Task, User, UserRole, CompanyProfile } from '../types';
+import { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
+import { Transaction, Product, Task, User, UserRole, CompanyProfile, Warranty } from '../types';
 import { api, fetchInitialData, isSheetsConfigured, saveApiUrl } from '../services/sheetsService';
 
 const DEFAULT_COMPANY: CompanyProfile = {
@@ -18,6 +18,7 @@ const DEFAULT_COMPANY: CompanyProfile = {
 const MOCK_TRANSACTIONS: Transaction[] = [];
 const MOCK_PRODUCTS: Product[] = [];
 const MOCK_TASKS: Task[] = [];
+const MOCK_WARRANTIES: Warranty[] = [];
 
 interface AppContextType {
   user: User;
@@ -42,6 +43,10 @@ interface AppContextType {
   updateTask: (id: string, t: Partial<Task>) => void;
   updateTaskStatus: (id: string, status: Task['status']) => void;
   deleteTask: (id: string) => void;
+  warranties: Warranty[];
+  addWarranty: (w: Omit<Warranty, 'id'>) => void;
+  updateWarranty: (id: string, w: Partial<Warranty>) => void;
+  deleteWarranty: (id: string) => void;
   configDatabase: (url: string) => Promise<boolean>;
 }
 
@@ -49,7 +54,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children?: ReactNode }): ReactElement => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User>({ id: 'u1', name: 'Demo User', role: UserRole.ADMIN });
+  const [user, setUser] = useState<User>({ id: 'u1', name: 'Admin User', role: UserRole.ADMIN });
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() => {
     const saved = localStorage.getItem('company_profile');
     return saved ? JSON.parse(saved) : DEFAULT_COMPANY;
@@ -58,6 +63,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [warranties, setWarranties] = useState<Warranty[]>(MOCK_WARRANTIES);
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -70,6 +76,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
           setTransactions(data.transactions || []);
           setProducts(data.products || []);
           setTasks(data.tasks || []);
+          setWarranties(data.warranties || []);
           
           if (data.companyprofile && data.companyprofile.length > 0) {
             const profile = data.companyprofile[0];
@@ -102,7 +109,8 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   };
 
   const login = (password: string) => {
-    if (password === 'admin') {
+    // เปลี่ยนรหัสผ่านจาก 'admin' เป็น '123456'
+    if (password === '123456') {
       setIsAuthenticated(true);
       return true;
     }
@@ -176,12 +184,29 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     api.deleteTask(id);
   };
 
+  const addWarranty = (w: Omit<Warranty, 'id'>) => {
+    const newW = { ...w, id: Math.random().toString(36).substr(2, 9) };
+    setWarranties(prev => [newW, ...prev]);
+    api.addWarranty(newW as Warranty);
+  };
+
+  const updateWarranty = (id: string, w: Partial<Warranty>) => {
+    setWarranties(prev => prev.map(item => item.id === id ? { ...item, ...w } : item));
+    api.updateWarranty({ id, ...w });
+  };
+
+  const deleteWarranty = (id: string) => {
+    setWarranties(prev => prev.filter(item => item.id !== id));
+    api.deleteWarranty(id);
+  };
+
   return (
     <AppContext.Provider value={{
       user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
       transactions, addTransaction, updateTransaction, deleteTransaction,
       products, addProduct, updateProduct, deleteProduct,
       tasks, addTask, updateTask, updateTaskStatus, deleteTask,
+      warranties, addWarranty, updateWarranty, deleteWarranty,
       configDatabase
     }}>
       {children}

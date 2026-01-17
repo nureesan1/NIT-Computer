@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskType, Customer } from '../types';
 import { format } from 'date-fns';
-import { Save, Printer, User, Building, MapPin, Phone, Mail, FileText, Calendar, Wrench, Monitor, ClipboardList, Layers, Wallet } from 'lucide-react';
+import { Save, Printer, User, Building, MapPin, Phone, Mail, FileText, Calendar, Wrench, Monitor, ClipboardList, Layers, Wallet, Tag } from 'lucide-react';
 
 const JobIntake = () => {
   const { addTask, tasks, companyProfile } = useApp();
@@ -18,6 +18,8 @@ const JobIntake = () => {
     customerAddress: '',
     jobType: 'REPAIR' as TaskType,
     jobTitle: '',
+    jobBrand: '',
+    jobModel: '',
     jobDescription: '',
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: '',
@@ -40,6 +42,8 @@ const JobIntake = () => {
     const newTask: Omit<Task, 'id'> = {
       type: formData.jobType,
       title: formData.jobTitle,
+      brand: formData.jobBrand,
+      model: formData.jobModel,
       description: formData.jobDescription,
       startDate: formData.startDate,
       endDate: formData.endDate,
@@ -66,7 +70,7 @@ const JobIntake = () => {
   const resetForm = () => {
     setFormData({
       customerName: '', customerCompany: '', customerPhone: '', customerEmail: '', customerAddress: '',
-      jobType: 'REPAIR', jobTitle: '', jobDescription: '', startDate: format(new Date(), 'yyyy-MM-dd'),
+      jobType: 'REPAIR', jobTitle: '', jobBrand: '', jobModel: '', jobDescription: '', startDate: format(new Date(), 'yyyy-MM-dd'),
       endDate: '', location: '', estimatedCost: 0, deposit: 0, assignee: ''
     });
     setShowReceipt(false);
@@ -133,6 +137,9 @@ const JobIntake = () => {
               <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2"><FileText size={16} className="text-blue-600" /> รายละเอียดงาน</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-semibold w-32 inline-block text-slate-500">หัวข้อ:</span> <span className="text-slate-800 font-bold">{createdJob.title}</span></p>
+                {(createdJob.brand || createdJob.model) && (
+                    <p><span className="font-semibold w-32 inline-block text-slate-500">อุปกรณ์:</span> <span className="text-slate-800">{createdJob.brand} {createdJob.model}</span></p>
+                )}
                 <p><span className="font-semibold w-32 inline-block text-slate-500">วันที่รับงาน:</span> <span className="text-slate-800">{createdJob.startDate}</span></p>
                 {createdJob.endDate && <p><span className="font-semibold w-32 inline-block text-slate-500">กำหนดส่งคืน:</span> <span className="text-slate-800 font-bold text-blue-700">{createdJob.endDate}</span></p>}
               </div>
@@ -325,6 +332,35 @@ const JobIntake = () => {
                     className="w-full border-slate-200 border p-3 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
                     value={formData.jobTitle} 
                     onChange={e => setFormData({...formData, jobTitle: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              {/* Device Brand & Model Fields */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ยี่ห้อสินค้า (Brand)</label>
+                <div className="relative">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="เช่น Dell, HP, ASUS" 
+                    className="w-full border-slate-200 border p-3 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+                    value={formData.jobBrand} 
+                    onChange={e => setFormData({...formData, jobBrand: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">รุ่นสินค้า (Model)</label>
+                <div className="relative">
+                  <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="เช่น Inspiron 15, Vostro" 
+                    className="w-full border-slate-200 border p-3 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+                    value={formData.jobModel} 
+                    onChange={e => setFormData({...formData, jobModel: e.target.value})} 
                   />
                 </div>
               </div>

@@ -1,10 +1,6 @@
 
 export enum UserRole {
-  ADMIN = 'Admin',
-  ACCOUNTING = 'Accounting',
-  STOCK = 'Stock',
-  TECHNICIAN = 'Technician',
-  MANAGER = 'Manager'
+  ADMIN = 'Admin'
 }
 
 export type PaymentMethod = 'CASH' | 'TRANSFER';
@@ -46,6 +42,8 @@ export interface Task {
   id: string;
   type: TaskType;
   title: string;
+  brand?: string;
+  model?: string;
   description?: string; 
   startDate: string; 
   endDate?: string; 
@@ -75,4 +73,20 @@ export interface CompanyProfile {
   accountName?: string;
   accountNumber?: string;
   qrCode?: string;
+}
+
+export interface Warranty {
+  id: string;
+  purchaseDate: string;
+  productName: string;
+  modelCode: string;
+  serialNumber: string;
+  quantity: number;
+  vendor: string;
+  price: number;
+  duration: string; // e.g., "1 ปี", "6 เดือน"
+  startDate: string;
+  expiryDate: string;
+  conditions: string;
+  hasDocuments: boolean;
 }
