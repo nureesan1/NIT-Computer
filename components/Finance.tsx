@@ -5,13 +5,13 @@ import { Transaction, TransactionType, PaymentMethod, CustomerRecord } from '../
 import { 
   Plus, Download, TrendingUp, TrendingDown, 
   Calendar, ChevronLeft, ChevronRight, PieChart, 
-  ArrowUpRight, ArrowDownRight, Wallet, Filter, X, Edit2, Trash2, Save, User
+  ArrowUpRight, ArrowDownRight, Wallet, Filter, X, Edit2, Trash2, Save, User, UserPlus, CheckCircle2
 } from 'lucide-react';
 import { format, isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { th } from 'date-fns/locale/th';
 
 const Finance = () => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction, customers } = useApp();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, customers, addCustomer } = useApp();
   const [activeTab, setActiveTab] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -27,8 +27,12 @@ const Finance = () => {
     paymentMethod: 'TRANSFER',
     category: 'งานซ่อม',
     customerName: '',
-    customerId: ''
+    customerId: '',
+    description: '',
+    amount: 0
   });
+
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,17 +81,31 @@ const Finance = () => {
       customerName: '',
       customerId: ''
     });
+    setIsNewCustomer(false);
   };
 
-  const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const customerId = e.target.value;
-    if (customerId === "") {
-        setFormData({ ...formData, customerId: '', customerName: '' });
-        return;
+  const handleCustomerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    const existingCustomer = customers.find(c => c.name === name);
+    
+    if (existingCustomer) {
+      setFormData({ ...formData, customerName: name, customerId: existingCustomer.id });
+      setIsNewCustomer(false);
+    } else {
+      setFormData({ ...formData, customerName: name, customerId: '' });
+      setIsNewCustomer(name.length > 0);
     }
-    const customer = customers.find(c => c.id === customerId);
-    if (customer) {
-        setFormData({ ...formData, customerId: customer.id, customerName: customer.name });
+  };
+
+  const handleQuickAddCustomer = () => {
+    if (formData.customerName) {
+      addCustomer({
+        name: formData.customerName,
+        phone: '-', // Placeholder
+        notes: 'เพิ่มอัตโนมัติจากหน้าการเงิน'
+      });
+      setIsNewCustomer(false);
+      alert(`บันทึกข้อมูลลูกค้า "${formData.customerName}" เรียบร้อยแล้ว`);
     }
   };
 
@@ -156,7 +174,7 @@ const Finance = () => {
       </div>
 
       {showForm && (
-        <div className={`p-8 rounded-[2rem] border-2 shadow-2xl animate-fade-in relative ${editingId ? 'bg-amber-50 border-amber-100 shadow-amber-900/5' : 'bg-white border-blue-50 shadow-blue-900/5'}`}>
+        <div className={`p-8 rounded-[2rem] border-2 shadow-2xl animate-fade-in relative transition-all duration-300 ${editingId ? 'bg-amber-50 border-amber-200 shadow-amber-900/5' : 'bg-white border-blue-100 shadow-blue-900/5'}`}>
           <div className="absolute top-6 right-6">
              <button onClick={handleCloseForm} className="text-slate-300 hover:text-slate-500 transition-colors">
                <X size={24} />
@@ -168,16 +186,19 @@ const Finance = () => {
              </div>
              {editingId ? 'แก้ไขข้อมูลธุรกรรม' : 'บันทึกธุรกรรมใหม่'}
           </h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Row 1: Date, Type, Amount */}
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">วันที่รายการ *</label>
-                <input 
-                    type="date" 
-                    required
-                    value={formData.date}
-                    onChange={e => setFormData({...formData, date: e.target.value})}
-                    className="w-full border-slate-200 border-2 rounded-2xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
-                />
+                <div className="relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                      type="date" required
+                      value={formData.date}
+                      onChange={e => setFormData({...formData, date: e.target.value})}
+                      className="w-full border-slate-200 border-2 rounded-2xl p-3.5 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
+                  />
+                </div>
             </div>
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ประเภทธุรกรรม</label>
@@ -194,11 +215,7 @@ const Finance = () => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">จำนวนเงิน (บาท) *</label>
                 <div className="relative">
                   <input 
-                      type="number" 
-                      required
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
+                      type="number" required min="0" step="0.01" placeholder="0.00"
                       value={formData.amount || ''}
                       onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})}
                       className="w-full border-slate-200 border-2 rounded-2xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-black text-lg"
@@ -206,32 +223,16 @@ const Finance = () => {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">฿</span>
                 </div>
             </div>
+
+            {/* Row 2: Description (long) & Payment Method (short) */}
             <div className="md:col-span-2 space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">รายละเอียดรายการ *</label>
                 <input 
-                    type="text" 
-                    required
-                    placeholder="ระบุรายละเอียด เช่น ค่าแรงติดตั้งกล้อง, ซื้อสายไฟ..."
+                    type="text" required placeholder="ระบุรายละเอียด เช่น ค่าแรงติดตั้งกล้อง, ซื้อสายไฟ..."
                     value={formData.description || ''}
                     onChange={e => setFormData({...formData, description: e.target.value})}
                     className="w-full border-slate-200 border-2 rounded-2xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
                 />
-            </div>
-            <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ชื่อลูกค้า (ถ้ามี)</label>
-                <div className="relative group">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <select 
-                    value={formData.customerId || ''}
-                    onChange={handleCustomerSelect}
-                    className="w-full border-slate-200 border-2 rounded-2xl p-3.5 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold bg-white cursor-pointer"
-                  >
-                    <option value="">-- ไม่ระบุลูกค้า --</option>
-                    {customers.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
             </div>
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ช่องทางชำระ</label>
@@ -244,6 +245,8 @@ const Finance = () => {
                     <option value="CASH">เงินสด</option>
                 </select>
             </div>
+
+            {/* Row 3: Category (short) & Customer (long) */}
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">หมวดหมู่</label>
                 <select 
@@ -256,9 +259,44 @@ const Finance = () => {
                     ))}
                 </select>
             </div>
+            <div className="md:col-span-2 space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ชื่อลูกค้า (ถ้ามี)</label>
+                <div className="relative group">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                  <input 
+                    type="text"
+                    list="customer-list"
+                    placeholder="พิมพ์ชื่อลูกค้า..."
+                    value={formData.customerName || ''}
+                    onChange={handleCustomerNameChange}
+                    className="w-full border-slate-200 border-2 rounded-2xl p-3.5 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
+                  />
+                  <datalist id="customer-list">
+                    {customers.map(c => (
+                        <option key={c.id} value={c.name}>{c.company ? `(${c.company})` : ''}</option>
+                    ))}
+                  </datalist>
+                  {isNewCustomer && (
+                    <button 
+                      type="button"
+                      onClick={handleQuickAddCustomer}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                      title="เพิ่มเป็นลูกค้าใหม่ทันที"
+                    >
+                      <UserPlus size={16} />
+                    </button>
+                  )}
+                </div>
+                {isNewCustomer && (
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-tight mt-1 animate-pulse flex items-center gap-1">
+                    <CheckCircle2 size={12} /> สามารถพิมพ์ชื่อ และจัดเก็บข้อมูลลูกค้าได้เลย
+                  </p>
+                )}
+            </div>
+
             <div className="md:col-span-3 flex justify-end gap-4 mt-4 pt-6 border-t border-slate-100">
                 <button type="button" onClick={handleCloseForm} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
-                <button type="submit" className={`px-12 py-3.5 rounded-2xl text-white font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center gap-2 ${editingId ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>
+                <button type="submit" className={`px-12 py-3.5 rounded-2xl text-white font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center gap-3 ${editingId ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>
                    {editingId ? <Save size={20} /> : <Plus size={20} />}
                    {editingId ? 'บันทึกการแก้ไข' : 'บันทึกรายการ'}
                 </button>

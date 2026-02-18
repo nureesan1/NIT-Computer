@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskType, TaskStatus } from '../types';
 import { 
@@ -7,17 +7,16 @@ import {
   Wrench, Monitor, FileText, Layers, Edit2, Printer, X, Save, Trash2, Tag, 
   ChevronLeft, ChevronRight, MoreHorizontal, CheckCircle
 } from 'lucide-react';
+// Fix: Removed missing exports (startOfMonth, startOfWeek, subMonths) and added addDays to help with manual logic
 import { 
   format, 
-  startOfMonth, 
   endOfMonth, 
-  startOfWeek, 
   endOfWeek, 
   eachDayOfInterval, 
   isSameMonth, 
   isSameDay, 
   addMonths, 
-  subMonths,
+  addDays,
   isToday
 } from 'date-fns';
 import { th } from 'date-fns/locale/th';
@@ -37,9 +36,11 @@ const WorkCalendar = () => {
   });
 
   // Calendar Logic
-  const monthStart = startOfMonth(currentDate);
+  // Fix: Manual calculation of startOfMonth since the date-fns export was reported missing
+  const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart);
+  // Fix: Manual calculation of startOfWeek (Sunday) using addDays and getDay
+  const startDate = addDays(monthStart, -monthStart.getDay());
   const endDate = endOfWeek(monthEnd);
 
   const calendarDays = eachDayOfInterval({
@@ -48,7 +49,8 @@ const WorkCalendar = () => {
   });
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  // Fix: Use addMonths(..., -1) instead of missing subMonths
+  const prevMonth = () => setCurrentDate(addMonths(currentDate, -1));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
