@@ -1,5 +1,5 @@
 
-import { Transaction, Product, Task, CompanyProfile, Warranty } from "../types";
+import { Transaction, Product, Task, CompanyProfile, Warranty, Quotation, CustomerRecord } from "../types";
 
 const STORAGE_KEY = 'nit_sheet_api_url';
 const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzfWSTp3TkTlF4EJeOZz6RRLwuUQh9uWdBYBmB7wzFaOv1d3r2qdkoxvFolxsxdK53wYQ/exec';
@@ -77,4 +77,10 @@ export const api = {
   addWarranty: (w: Warranty) => sendRequest('ADD_WARRANTY', w),
   updateWarranty: (w: Partial<Warranty> & { id: string }) => sendRequest('UPDATE_WARRANTY', w),
   deleteWarranty: (id: string) => sendRequest('DELETE_WARRANTY', { id }),
+  addQuotation: (q: Quotation) => sendRequest('ADD_QUOTATION', q),
+  updateQuotationStatus: (id: string, status: string) => sendRequest('UPDATE_QUOTATION_STATUS', { id, status }),
+  deleteQuotation: (id: string) => sendRequest('DELETE_QUOTATION', { id }),
+  addCustomer: (c: CustomerRecord) => sendRequest('ADD_CUSTOMER', c),
+  updateCustomer: (c: Partial<CustomerRecord> & { id: string }) => sendRequest('UPDATE_CUSTOMER', c),
+  deleteCustomer: (id: string) => sendRequest('DELETE_CUSTOMER', { id }),
 };

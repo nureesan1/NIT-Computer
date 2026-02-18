@@ -5,7 +5,6 @@ import { UserRole } from '../types';
 import { 
   LayoutDashboard, 
   Wallet, 
-  Package, 
   CalendarDays, 
   ClipboardList,
   Menu, 
@@ -18,7 +17,9 @@ import {
   Building2,
   Calculator,
   Receipt,
-  ShieldCheck
+  ShieldCheck,
+  FileText,
+  Users
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -31,6 +32,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     { icon: <LayoutDashboard size={20} />, label: 'ภาพรวมระบบ', path: '/', allowed: [UserRole.ADMIN] },
     { icon: <ClipboardList size={20} />, label: 'รับงานลูกค้า (Intake)', path: '/intake', allowed: [UserRole.ADMIN] },
     { icon: <CalendarDays size={20} />, label: 'ตารางงาน', path: '/calendar', allowed: [UserRole.ADMIN] },
+    { icon: <Users size={20} />, label: 'รายชื่อลูกค้า', path: '/customers', allowed: [UserRole.ADMIN] },
+    { icon: <FileText size={20} />, label: 'ออกใบเสนอราคา', path: '/quotation', allowed: [UserRole.ADMIN] },
     { icon: <Wallet size={20} />, label: 'การเงิน (รายรับ-จ่าย)', path: '/finance', allowed: [UserRole.ADMIN] },
     { icon: <Receipt size={20} />, label: 'ออกใบเสร็จรับเงินสด', path: '/inventory', allowed: [UserRole.ADMIN] },
     { icon: <ShieldCheck size={20} />, label: 'บันทึกประกันสินค้า', path: '/warranty', allowed: [UserRole.ADMIN] },

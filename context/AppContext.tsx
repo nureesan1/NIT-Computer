@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
-import { Transaction, Product, Task, User, UserRole, CompanyProfile, Warranty } from '../types';
+import { Transaction, Product, Task, User, UserRole, CompanyProfile, Warranty, Quotation, CustomerRecord } from '../types';
 import { api, fetchInitialData, isSheetsConfigured, saveApiUrl } from '../services/sheetsService';
 
 const DEFAULT_COMPANY: CompanyProfile = {
@@ -14,11 +14,6 @@ const DEFAULT_COMPANY: CompanyProfile = {
   accountName: 'บจก. เอ็น ไอ ที คอนซัลติ้ง โซลูชั่น',
   accountNumber: 'XXX-X-XXXXX-X'
 };
-
-const MOCK_TRANSACTIONS: Transaction[] = [];
-const MOCK_PRODUCTS: Product[] = [];
-const MOCK_TASKS: Task[] = [];
-const MOCK_WARRANTIES: Warranty[] = [];
 
 interface AppContextType {
   user: User;
@@ -47,6 +42,14 @@ interface AppContextType {
   addWarranty: (w: Omit<Warranty, 'id'>) => void;
   updateWarranty: (id: string, w: Partial<Warranty>) => void;
   deleteWarranty: (id: string) => void;
+  quotations: Quotation[];
+  addQuotation: (q: Quotation) => void;
+  updateQuotationStatus: (id: string, status: Quotation['status']) => void;
+  deleteQuotation: (id: string) => void;
+  customers: CustomerRecord[];
+  addCustomer: (c: Omit<CustomerRecord, 'id'>) => void;
+  updateCustomer: (id: string, c: Partial<CustomerRecord>) => void;
+  deleteCustomer: (id: string) => void;
   configDatabase: (url: string) => Promise<boolean>;
 }
 
@@ -60,10 +63,12 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     return saved ? JSON.parse(saved) : DEFAULT_COMPANY;
   });
   
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [warranties, setWarranties] = useState<Warranty[]>(MOCK_WARRANTIES);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,6 +82,8 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
           setProducts(data.products || []);
           setTasks(data.tasks || []);
           setWarranties(data.warranties || []);
+          setQuotations(data.quotations || []);
+          setCustomers(data.customers || []);
           
           if (data.companyprofile && data.companyprofile.length > 0) {
             const profile = data.companyprofile[0];
@@ -109,7 +116,6 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
   };
 
   const login = (password: string) => {
-    // เปลี่ยนรหัสผ่านจาก 'admin' เป็น '123456'
     if (password === '123456') {
       setIsAuthenticated(true);
       return true;
@@ -200,6 +206,37 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
     api.deleteWarranty(id);
   };
 
+  const addQuotation = (q: Quotation) => {
+    setQuotations(prev => [q, ...prev]);
+    api.addQuotation(q);
+  };
+
+  const updateQuotationStatus = (id: string, status: Quotation['status']) => {
+    setQuotations(prev => prev.map(q => q.id === id ? { ...q, status } : q));
+    api.updateQuotationStatus(id, status);
+  };
+
+  const deleteQuotation = (id: string) => {
+    setQuotations(prev => prev.filter(q => q.id !== id));
+    api.deleteQuotation(id);
+  };
+
+  const addCustomer = (c: Omit<CustomerRecord, 'id'>) => {
+    const newC = { ...c, id: `CUST-${Math.random().toString(36).substr(2, 9).toUpperCase()}` };
+    setCustomers(prev => [...prev, newC]);
+    api.addCustomer(newC as CustomerRecord);
+  };
+
+  const updateCustomer = (id: string, c: Partial<CustomerRecord>) => {
+    setCustomers(prev => prev.map(item => item.id === id ? { ...item, ...c } : item));
+    api.updateCustomer({ id, ...c });
+  };
+
+  const deleteCustomer = (id: string) => {
+    setCustomers(prev => prev.filter(item => item.id !== id));
+    api.deleteCustomer(id);
+  };
+
   return (
     <AppContext.Provider value={{
       user, isAuthenticated, isDbConnected, isLoading, companyProfile, login, logout, switchRole, updateCompanyProfile,
@@ -207,6 +244,8 @@ export const AppProvider = ({ children }: { children?: ReactNode }): ReactElemen
       products, addProduct, updateProduct, deleteProduct,
       tasks, addTask, updateTask, updateTaskStatus, deleteTask,
       warranties, addWarranty, updateWarranty, deleteWarranty,
+      quotations, addQuotation, updateQuotationStatus, deleteQuotation,
+      customers, addCustomer, updateCustomer, deleteCustomer,
       configDatabase
     }}>
       {children}

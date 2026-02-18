@@ -38,6 +38,17 @@ export interface Customer {
   address?: string;
 }
 
+export interface CustomerRecord {
+  id: string;
+  name: string;
+  company?: string;
+  taxId?: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+}
+
 export interface Task {
   id: string;
   type: TaskType;
@@ -89,4 +100,37 @@ export interface Warranty {
   expiryDate: string;
   conditions: string;
   hasDocuments: boolean;
+}
+
+export type QuotationStatus = 'PENDING' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+
+export interface QuotationItem {
+  id: string;
+  code?: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  discount?: number;
+  vatType: '7%' | 'Exempt' | '0%';
+  total: number;
+}
+
+export interface Quotation {
+  id: string;
+  date: string;
+  validityDays: number;
+  customerName: string;
+  customerCode?: string;
+  customerTaxId?: string;
+  customerAddress?: string;
+  customerPhone: string;
+  customerEmail?: string;
+  items: QuotationItem[];
+  subtotal: number;
+  vatAmount: number;
+  total: number;
+  notes?: string;
+  status: QuotationStatus;
 }

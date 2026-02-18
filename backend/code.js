@@ -1,7 +1,7 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.4)
- * เพิ่มฟิลด์ Brand และ Model ในตาราง Tasks
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.6)
+ * เพิ่มตาราง Customers
  */
 
 function doGet(e) {
@@ -12,7 +12,9 @@ function doGet(e) {
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
     'Tasks': ['id', 'type', 'title', 'brand', 'model', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],
     'CompanyProfile': ['name', 'address', 'phone', 'email', 'taxId', 'website', 'logo', 'bankName', 'accountName', 'accountNumber', 'qrCode'],
-    'Warranties': ['id', 'purchaseDate', 'productName', 'modelCode', 'serialNumber', 'quantity', 'vendor', 'price', 'duration', 'startDate', 'expiryDate', 'conditions', 'hasDocuments']
+    'Warranties': ['id', 'purchaseDate', 'productName', 'modelCode', 'serialNumber', 'quantity', 'vendor', 'price', 'duration', 'startDate', 'expiryDate', 'conditions', 'hasDocuments'],
+    'Quotations': ['id', 'date', 'validityDays', 'customerName', 'customerAddress', 'customerPhone', 'items', 'subtotal', 'vatAmount', 'total', 'notes', 'status'],
+    'Customers': ['id', 'name', 'company', 'taxId', 'phone', 'email', 'address', 'notes']
   };
 
   const responseData = {};
@@ -54,6 +56,12 @@ function doPost(e) {
       case 'ADD_WARRANTY': appendRow(ss, 'Warranties', data); break;
       case 'UPDATE_WARRANTY': updateRow(ss, 'Warranties', 'id', data.id, data); break;
       case 'DELETE_WARRANTY': deleteRow(ss, 'Warranties', 'id', data.id); break;
+      case 'ADD_QUOTATION': appendRow(ss, 'Quotations', data); break;
+      case 'UPDATE_QUOTATION_STATUS': updateRow(ss, 'Quotations', 'id', data.id, { status: data.status }); break;
+      case 'DELETE_QUOTATION': deleteRow(ss, 'Quotations', 'id', data.id); break;
+      case 'ADD_CUSTOMER': appendRow(ss, 'Customers', data); break;
+      case 'UPDATE_CUSTOMER': updateRow(ss, 'Customers', 'id', data.id, data); break;
+      case 'DELETE_CUSTOMER': deleteRow(ss, 'Customers', 'id', data.id); break;
       default: throw new Error('Unknown action: ' + action);
     }
     
