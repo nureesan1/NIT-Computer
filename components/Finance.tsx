@@ -1,17 +1,17 @@
 
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Transaction, TransactionType, PaymentMethod } from '../types';
+import { Transaction, TransactionType, PaymentMethod, CustomerRecord } from '../types';
 import { 
   Plus, Download, TrendingUp, TrendingDown, 
   Calendar, ChevronLeft, ChevronRight, PieChart, 
-  ArrowUpRight, ArrowDownRight, Wallet, Filter, X, Edit2, Trash2, Save
+  ArrowUpRight, ArrowDownRight, Wallet, Filter, X, Edit2, Trash2, Save, User
 } from 'lucide-react';
 import { format, isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { th } from 'date-fns/locale/th';
 
 const Finance = () => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useApp();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, customers } = useApp();
   const [activeTab, setActiveTab] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,7 +25,9 @@ const Finance = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     type: 'INCOME',
     paymentMethod: 'TRANSFER',
-    category: 'งานซ่อม'
+    category: 'งานซ่อม',
+    customerName: '',
+    customerId: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +49,9 @@ const Finance = () => {
       paymentMethod: t.paymentMethod,
       category: t.category,
       description: t.description,
-      amount: t.amount
+      amount: t.amount,
+      customerName: t.customerName,
+      customerId: t.customerId
     });
     setEditingId(t.id);
     setShowForm(true);
@@ -69,8 +73,22 @@ const Finance = () => {
       paymentMethod: 'TRANSFER', 
       category: 'งานซ่อม',
       description: '',
-      amount: 0
+      amount: 0,
+      customerName: '',
+      customerId: ''
     });
+  };
+
+  const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const customerId = e.target.value;
+    if (customerId === "") {
+        setFormData({ ...formData, customerId: '', customerName: '' });
+        return;
+    }
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+        setFormData({ ...formData, customerId: customer.id, customerName: customer.name });
+    }
   };
 
   // Filtering Logic
@@ -198,6 +216,22 @@ const Finance = () => {
                     onChange={e => setFormData({...formData, description: e.target.value})}
                     className="w-full border-slate-200 border-2 rounded-2xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold"
                 />
+            </div>
+            <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ชื่อลูกค้า (ถ้ามี)</label>
+                <div className="relative group">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <select 
+                    value={formData.customerId || ''}
+                    onChange={handleCustomerSelect}
+                    className="w-full border-slate-200 border-2 rounded-2xl p-3.5 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold bg-white cursor-pointer"
+                  >
+                    <option value="">-- ไม่ระบุลูกค้า --</option>
+                    {customers.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
             </div>
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ช่องทางชำระ</label>
@@ -335,7 +369,7 @@ const Finance = () => {
                 <thead className="bg-slate-50/50 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-slate-100">
                     <tr>
                         <th className="p-6">วันที่</th>
-                        <th className="p-6">รายละเอียด / บันทึก</th>
+                        <th className="p-6">รายละเอียด / ลูกค้า</th>
                         <th className="p-6">หมวดหมู่</th>
                         <th className="p-6">ช่องทาง</th>
                         <th className="p-6 text-right">จำนวนเงิน (THB)</th>
@@ -354,7 +388,14 @@ const Finance = () => {
                             <td className="p-6">
                                <div className="flex items-center gap-3">
                                   <div className={`w-1.5 h-1.5 rounded-full ${t.type === 'INCOME' ? 'bg-emerald-400' : 'bg-red-400'}`}></div>
-                                  <span className="font-bold text-slate-800 text-base">{t.description}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-800 text-base">{t.description}</span>
+                                    {t.customerName && (
+                                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5 flex items-center gap-1">
+                                            <User size={10} /> {t.customerName}
+                                        </span>
+                                    )}
+                                  </div>
                                </div>
                             </td>
                             <td className="p-6">

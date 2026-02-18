@@ -1,27 +1,54 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskType, TaskStatus } from '../types';
 import { 
   Plus, Check, Clock, MapPin, User, Calendar as CalendarIcon, 
-  Wrench, Monitor, FileText, Layers, Edit2, Printer, X, Save, Wallet, Trash2, Tag, CheckCircle
+  Wrench, Monitor, FileText, Layers, Edit2, Printer, X, Save, Trash2, Tag, 
+  ChevronLeft, ChevronRight, MoreHorizontal, CheckCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  isSameMonth, 
+  isSameDay, 
+  addMonths, 
+  subMonths,
+  isToday
+} from 'date-fns';
 import { th } from 'date-fns/locale/th';
 import { useNavigate } from 'react-router-dom';
 
 const WorkCalendar = () => {
   const { tasks, addTask, updateTask, updateTaskStatus, deleteTask, companyProfile } = useApp();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
-  const [filterType, setFilterType] = useState<'ALL' | TaskType>('ALL');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [printingTask, setPrintingTask] = useState<Task | null>(null);
   const navigate = useNavigate();
 
-  // Quick Add / Edit Task Form State
+  // Form State
   const [formData, setFormData] = useState<Partial<Task>>({
     type: 'REPAIR', status: 'PENDING', startDate: format(new Date(), 'yyyy-MM-dd')
   });
+
+  // Calendar Logic
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+
+  const calendarDays = eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  });
+
+  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,56 +68,27 @@ const WorkCalendar = () => {
     setEditingTask(task);
     setFormData({ ...task });
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const handleDelete = (id: string) => {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?')) {
-      deleteTask(id);
-    }
-  };
-
-  const filteredTasks = tasks.filter(t => filterType === 'ALL' ? true : t.type === filterType)
-    .sort((a, b) => {
-      // Priority for sorting: Pending/In Progress first, then Completed, then Canceled
-      const statusPriority: Record<TaskStatus, number> = {
-        'PENDING': 0,
-        'IN_PROGRESS': 0,
-        'COMPLETED': 1,
-        'CANCELED': 2
-      };
-
-      const pA = statusPriority[a.status] ?? 0;
-      const pB = statusPriority[b.status] ?? 0;
-
-      if (pA !== pB) {
-        return pA - pB;
-      }
-
-      // Within same status group, sort by start date
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-    });
 
   const getStatusColor = (status: TaskStatus) => {
     switch(status) {
-        case 'PENDING': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        case 'PENDING': return 'bg-amber-100 text-amber-700 border-amber-200';
         case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700 border-blue-200';
-        case 'COMPLETED': return 'bg-green-100 text-green-700 border-green-200';
+        case 'COMPLETED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
         case 'CANCELED': return 'bg-slate-100 text-slate-500 border-slate-200';
         default: return 'bg-slate-100';
     }
   };
 
-  const getTypeInfo = (type: TaskType) => {
+  const getTypeColor = (type: TaskType) => {
     switch(type) {
-      case 'REPAIR': return { label: 'งานซ่อม', icon: <Wrench size={12} />, color: 'bg-orange-100 text-orange-700 border-orange-200' };
-      case 'INSTALLATION': return { label: 'งานติดตั้ง', icon: <Layers size={12} />, color: 'bg-blue-100 text-blue-700 border-blue-200' };
-      case 'SYSTEM': return { label: 'งานระบบ', icon: <Monitor size={12} />, color: 'bg-purple-100 text-purple-700 border-purple-200' };
-      default: return { label: type, icon: <FileText size={12} />, color: 'bg-slate-100 text-slate-700 border-slate-200' };
+      case 'REPAIR': return 'bg-orange-500';
+      case 'INSTALLATION': return 'bg-blue-600';
+      case 'SYSTEM': return 'bg-purple-600';
+      default: return 'bg-slate-500';
     }
-  }
+  };
 
-  // Receipt Modal for individual printing
   if (printingTask) {
     const remaining = (printingTask.estimatedCost || 0) - (printingTask.deposit || 0);
     return (
@@ -168,10 +166,11 @@ const WorkCalendar = () => {
 
   return (
     <div className="space-y-6">
-       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">ตารางงาน / ปฏิทิน</h2>
-          <p className="text-slate-500 font-medium">จัดการงานซ่อมและติดตั้ง</p>
+          <h2 className="text-2xl font-black text-slate-800">ตารางงานปฏิทิน</h2>
+          <p className="text-slate-500 font-medium">จัดการงานซ่อมและติดตั้งรายวัน</p>
         </div>
         <div className="flex gap-2">
             <button 
@@ -179,7 +178,7 @@ const WorkCalendar = () => {
                 className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all active:scale-95 font-black text-sm"
             >
                 <FileText size={18} />
-                เปิดใบงาน (Full)
+                เปิดใบงานแบบละเอียด
             </button>
             <button 
                 onClick={() => {
@@ -190,211 +189,160 @@ const WorkCalendar = () => {
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl shadow-xl transition-all active:scale-95 font-black text-sm ${showForm && !editingTask ? 'bg-slate-200 text-slate-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'}`}
             >
                 {showForm && !editingTask ? <X size={18} /> : <Plus size={18} />}
-                {showForm && !editingTask ? 'ปิดแบบฟอร์ม' : 'เพิ่มงานด่วน'}
+                {showForm && !editingTask ? 'ปิด' : 'เพิ่มงานด่วน'}
             </button>
         </div>
       </div>
 
+      {/* Quick Form */}
       {showForm && (
-        <div className={`p-8 rounded-3xl border-2 shadow-2xl animate-fade-in relative transition-all duration-300 ${editingTask ? 'bg-yellow-50/50 border-yellow-200 shadow-yellow-900/10' : 'bg-white border-blue-100 shadow-slate-900/5'}`}>
-           <div className="flex justify-between items-center mb-8">
-              <div className={`px-5 py-2.5 rounded-2xl border-2 flex items-center gap-3 ${editingTask ? 'bg-white border-yellow-400 text-slate-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                {editingTask ? <Edit2 className="text-yellow-600" size={20} /> : <Plus className="text-blue-600" size={20} />}
-                <h3 className="font-black text-lg">
-                  {editingTask ? `แก้ไขใบงาน: ${editingTask.id}` : 'เปิดใบงานใหม่ (Quick Add)'}
-                </h3>
-              </div>
-              <button onClick={() => { setShowForm(false); setEditingTask(null); }} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-white rounded-full transition-colors">
-                <X size={28} />
+        <div className={`p-8 rounded-3xl border-2 shadow-2xl animate-fade-in relative transition-all duration-300 mb-6 ${editingTask ? 'bg-amber-50/50 border-amber-200 shadow-amber-900/10' : 'bg-white border-blue-100 shadow-slate-900/5'}`}>
+           <div className="flex justify-between items-center mb-6">
+              <h3 className="font-black text-lg flex items-center gap-3">
+                {editingTask ? <Edit2 className="text-amber-600" size={20} /> : <Plus className="text-blue-600" size={20} />}
+                {editingTask ? `แก้ไขใบงาน: ${editingTask.id}` : 'เพิ่มงานใหม่ด่วน'}
+              </h3>
+              <button onClick={() => { setShowForm(false); setEditingTask(null); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={24} />
               </button>
            </div>
            
-           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-             <div className="lg:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">หัวข้องาน / ชื่องาน *</label>
-                <div className="relative group">
-                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size={20} />
-                  <input type="text" placeholder="ระบุชื่องาน..." className="w-full border-slate-200 border-2 p-4 pl-12 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-                </div>
+           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="lg:col-span-2 space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">หัวข้องาน *</label>
+                <input type="text" placeholder="ระบุชื่องาน..." className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:border-blue-500 outline-none transition-all font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
              </div>
-             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ประเภทงาน</label>
-                <select className="w-full border-slate-200 border-2 p-4 rounded-2xl bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all shadow-sm appearance-none cursor-pointer font-bold" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as TaskType})}>
+             <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ประเภทงาน</label>
+                <select className="w-full border-slate-200 border-2 p-3.5 rounded-2xl bg-white focus:border-blue-500 outline-none transition-all font-bold cursor-pointer" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as TaskType})}>
                     <option value="REPAIR">งานซ่อม</option>
                     <option value="INSTALLATION">งานติดตั้ง</option>
                     <option value="SYSTEM">งานระบบ</option>
                 </select>
              </div>
-
-             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">ยี่ห้อ (Brand)</label>
-                <div className="relative group">
-                  <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size={18} />
-                  <input type="text" placeholder="เช่น Dell, ASUS" className="w-full border-slate-200 border-2 p-4 pl-12 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.brand || ''} onChange={e => setFormData({...formData, brand: e.target.value})} />
-                </div>
+             <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">วันที่เริ่ม *</label>
+                <input type="date" className="w-full border-slate-200 border-2 p-3.5 rounded-2xl focus:border-blue-500 outline-none transition-all font-bold" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} required />
              </div>
-
-             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">รุ่น (Model)</label>
-                <div className="relative group">
-                  <Monitor className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size={18} />
-                  <input type="text" placeholder="เช่น Inspiron, Zenbook" className="w-full border-slate-200 border-2 p-4 pl-12 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.model || ''} onChange={e => setFormData({...formData, model: e.target.value})} />
-                </div>
-             </div>
-
-             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">วันที่เริ่ม *</label>
-                <input type="date" className="w-full border-slate-200 border-2 p-4 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-white shadow-sm font-bold" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} required />
-             </div>
-             <div className="lg:col-span-3 flex justify-end items-center gap-6 pt-6 border-t border-slate-100 mt-2">
-                <button type="button" onClick={() => { setShowForm(false); setEditingTask(null); }} className="px-8 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors text-lg">
-                  ยกเลิก
-                </button>
-                <button type="submit" className={`px-12 py-4 rounded-2xl text-white shadow-xl transition-all active:scale-95 font-black text-lg flex items-center gap-3 ${editingTask ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-amber-500/20' : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/20'}`}>
-                   {editingTask ? <Save size={22} /> : <Plus size={22} />}
-                   {editingTask ? 'บันทึกการแก้ไข' : 'บันทึกเปิดงาน'}
+             <div className="lg:col-span-2 flex justify-end items-center gap-4 pt-4">
+                <button type="button" onClick={() => { setShowForm(false); setEditingTask(null); }} className="px-6 py-2 text-slate-500 font-bold hover:text-slate-800 transition-colors">ยกเลิก</button>
+                <button type="submit" className={`px-10 py-3 rounded-2xl text-white shadow-xl transition-all active:scale-95 font-black text-sm flex items-center gap-2 ${editingTask ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                   <Save size={18} /> {editingTask ? 'บันทึกแก้ไข' : 'บันทึกงาน'}
                 </button>
              </div>
            </form>
         </div>
       )}
 
-      {/* Type Filter */}
-      <div className="flex gap-2.5 flex-wrap">
-        {(['ALL', 'REPAIR', 'INSTALLATION', 'SYSTEM'] as const).map(type => (
-            <button
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`px-6 py-2.5 rounded-2xl text-xs font-black border-2 transition-all shadow-sm tracking-wider uppercase ${
-                    filterType === type 
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/20' 
-                    : 'bg-white text-slate-500 border-slate-100 hover:border-slate-300'
-                }`}
-            >
-                {type === 'ALL' ? 'ทั้งหมด' : type === 'REPAIR' ? 'งานซ่อม' : type === 'INSTALLATION' ? 'งานติดตั้ง' : 'งานระบบ'}
-            </button>
-        ))}
+      {/* Calendar Control */}
+      <div className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-4">
+              <button onClick={prevMonth} className="p-3 rounded-2xl border-2 border-slate-100 hover:bg-slate-50 text-slate-400 hover:text-blue-600 transition-all"><ChevronLeft size={24} /></button>
+              <div className="flex flex-col items-center min-w-[180px]">
+                  <span className="text-2xl font-black text-slate-800 uppercase tracking-tight">
+                    {format(currentDate, 'MMMM yyyy', { locale: th })}
+                  </span>
+                  <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Monthly Agenda</span>
+              </div>
+              <button onClick={nextMonth} className="p-3 rounded-2xl border-2 border-slate-100 hover:bg-slate-50 text-slate-400 hover:text-blue-600 transition-all"><ChevronRight size={24} /></button>
+          </div>
+          <div className="flex gap-4">
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase">
+                  <span className="w-3 h-3 rounded-full bg-orange-500"></span> ซ่อม
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase">
+                  <span className="w-3 h-3 rounded-full bg-blue-600"></span> ติดตั้ง
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase">
+                  <span className="w-3 h-3 rounded-full bg-purple-600"></span> ระบบ
+              </div>
+          </div>
       </div>
 
-      {/* Task List (Agenda View) */}
-      <div className="space-y-6">
-        {filteredTasks.map(task => {
-            const typeInfo = getTypeInfo(task.type);
-            const isCompleted = task.status === 'COMPLETED';
+      {/* Calendar Grid */}
+      <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-hidden animate-fade-in">
+        <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
+          {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map((day, idx) => (
+            <div key={idx} className={`py-4 text-center text-[10px] font-black uppercase tracking-widest ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-slate-400'}`}>
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 auto-rows-[120px] sm:auto-rows-[160px]">
+          {calendarDays.map((day, dayIdx) => {
+            const dayTasks = tasks.filter(t => isSameDay(new Date(t.startDate), day));
+            const isCurrentMonth = isSameMonth(day, monthStart);
+            const isTodayDate = isToday(day);
+
             return (
-                <div key={task.id} className={`bg-white p-6 rounded-[2rem] border-2 transition-all flex flex-col md:flex-row gap-8 items-start md:items-center relative ${isCompleted ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-slate-50 shadow-sm'} hover:shadow-xl group overflow-hidden bg-white`}>
-                    
-                    {/* Date Box */}
-                    <div className={`p-4 rounded-3xl text-center min-w-[100px] border-2 transition-all ${isCompleted ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100'}`}>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">{format(new Date(task.startDate), 'MMM')}</span>
-                        <span className="block text-4xl font-black text-slate-800 my-1">{format(new Date(task.startDate), 'dd')}</span>
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{format(new Date(task.startDate), 'eee', { locale: th })}</span>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1 space-y-4">
-                        <div className="flex flex-wrap items-center gap-4">
-                            <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm border-2 ${typeInfo.color}`}>
-                                {typeInfo.icon}
-                                {typeInfo.label}
-                            </span>
-                            <h4 className="font-black text-slate-800 text-2xl group-hover:text-blue-600 transition-colors leading-tight">
-                                {task.title} {task.brand || task.model ? `- ${task.brand} ${task.model}` : ''}
-                            </h4>
-                            
-                            {/* Customer Tag moved to header row */}
-                            {task.customer && (
-                                <div className="flex items-center gap-2 text-blue-700 bg-blue-100/50 px-4 py-2 rounded-2xl border border-blue-100 text-xs font-black">
-                                    <User size={16} /> {task.customer.name}
-                                </div>
-                            )}
-
-                            {isCompleted && (
-                                <span className="text-emerald-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200 ml-auto">
-                                    <CheckCircle size={14}/> เสร็จสมบูรณ์
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Problem / Description */}
-                        {task.description && (
-                            <p className="text-sm text-slate-500 font-medium whitespace-pre-line border-l-4 border-slate-200 pl-4 leading-relaxed italic">
-                                {task.description}
-                            </p>
-                        )}
-
-                        {/* Meta Tags - Customer tag removed from here */}
-                        <div className="flex flex-wrap gap-4 mt-6">
-                            {task.location && (
-                                <div className="flex items-center gap-2 text-slate-500 px-2 py-2 text-xs font-bold">
-                                    <MapPin size={16} className="text-slate-400" /> {task.location}
-                                </div>
-                            )}
-                            {task.assignee && (
-                                <div className="flex items-center gap-2 text-slate-500 px-2 py-2 text-xs font-bold">
-                                    <User size={16} className="text-slate-400" /> {task.assignee}
-                                </div>
-                            )}
-                            {task.endDate && (
-                                <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-2 rounded-2xl border border-red-100 text-xs font-black">
-                                    <Clock size={16} /> กำหนดเสร็จ: {task.endDate}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Actions Side */}
-                    <div className="flex flex-row md:flex-col items-center md:items-end gap-6 min-w-[200px] w-full md:w-auto border-t md:border-t-0 pt-6 md:pt-0">
-                        <div className="flex gap-3 w-full justify-start md:justify-end">
-                          <button onClick={() => handleEdit(task)} className="p-3 bg-white text-slate-400 rounded-full hover:bg-amber-50 hover:text-amber-500 transition-all border-2 border-slate-50 hover:border-amber-100"><Edit2 size={20} /></button>
-                          <button onClick={() => setPrintingTask(task)} className="p-3 bg-white text-slate-400 rounded-full hover:bg-blue-50 hover:text-blue-500 transition-all border-2 border-slate-50 hover:border-blue-100"><Printer size={20} /></button>
-                          <button onClick={() => handleDelete(task.id)} className="p-3 bg-white text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-all border-2 border-slate-50 hover:border-red-100"><Trash2 size={20} /></button>
-                        </div>
-
-                        <div className="flex-1 md:flex-none flex items-center justify-end">
-                           <span className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${getStatusColor(task.status)} shadow-sm`}>
-                              {task.status}
-                           </span>
-                        </div>
-
-                        {!isCompleted && task.status !== 'CANCELED' && (
-                            <button 
-                                onClick={() => updateTaskStatus(task.id, 'COMPLETED')}
-                                className="text-xs flex items-center justify-center gap-2 text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-600 font-black px-8 py-3.5 rounded-[1.5rem] transition-all shadow-xl shadow-emerald-900/5 w-full uppercase tracking-widest border-2 border-emerald-100 hover:border-emerald-600"
-                            >
-                                <Check size={20} /> ทำเสร็จแล้ว
-                            </button>
-                        )}
-                    </div>
+              <div 
+                key={dayIdx} 
+                className={`border-r border-b border-slate-100 p-2 relative group transition-colors ${!isCurrentMonth ? 'bg-slate-50/30' : 'bg-white hover:bg-blue-50/20'}`}
+              >
+                {/* Day Header */}
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`w-8 h-8 flex items-center justify-center rounded-xl text-sm font-black transition-all ${
+                    isTodayDate 
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-110' 
+                    : isCurrentMonth ? 'text-slate-700' : 'text-slate-300'
+                  }`}>
+                    {format(day, 'd')}
+                  </span>
+                  {isCurrentMonth && (
+                    <button 
+                      onClick={() => {
+                        setFormData({ ...formData, startDate: format(day, 'yyyy-MM-dd') });
+                        setShowForm(true);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  )}
                 </div>
+
+                {/* Tasks pills */}
+                <div className="space-y-1 overflow-y-auto max-h-[80px] sm:max-h-[120px] custom-scrollbar">
+                  {dayTasks.map(task => (
+                    <div 
+                      key={task.id}
+                      onClick={() => handleEdit(task)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold text-white cursor-pointer truncate hover:brightness-110 transition-all flex items-center gap-1.5 shadow-sm ${getTypeColor(task.type)} ${task.status === 'COMPLETED' ? 'opacity-40' : ''}`}
+                      title={task.title}
+                    >
+                      {task.status === 'COMPLETED' ? <CheckCircle size={10} /> : <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>}
+                      {task.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
             );
-        })}
+          })}
+        </div>
       </div>
-      
-      {/* Footer Summary Card */}
-      <div className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center justify-between border-4 border-slate-800 relative overflow-hidden group">
-          <div className="flex items-center gap-8 relative z-10">
-              <div className="p-5 bg-blue-600 rounded-[2rem] shadow-2xl shadow-blue-600/30">
-                  <CalendarIcon size={36} />
+
+      {/* Summary Footer */}
+      <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center justify-between border-4 border-slate-800 relative overflow-hidden">
+          <div className="flex items-center gap-6 relative z-10">
+              <div className="p-4 bg-blue-600 rounded-[1.5rem] shadow-xl">
+                  <CalendarIcon size={28} />
               </div>
               <div>
-                  <h5 className="font-black text-lg uppercase tracking-[0.3em] text-blue-400 mb-1">สรุปงานวันนี้</h5>
-                  <p className="text-slate-400 text-base font-bold">
-                    คุณมีงานค้างทั้งหมด <span className="text-white text-xl">{tasks.filter(t => t.status !== 'COMPLETED').length}</span> รายการ
+                  <h5 className="font-black text-base uppercase tracking-widest text-blue-400">สถานะปฏิทิน</h5>
+                  <p className="text-slate-400 text-sm font-bold">
+                    เดือนนี้มีงานทั้งหมด <span className="text-white text-lg">{tasks.filter(t => isSameMonth(new Date(t.startDate), currentDate)).length}</span> รายการ
                   </p>
               </div>
           </div>
-          
-          <div className="flex items-center gap-10 mt-8 md:mt-0 relative z-10">
-              <div className="text-right">
-                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mb-1">ประสิทธิภาพรวม</p>
-                  <p className="text-white font-black text-5xl tracking-tighter">
-                    {Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%
-                  </p>
+          <div className="flex gap-4 mt-6 md:mt-0">
+              <div className="px-6 py-3 bg-slate-800 rounded-2xl border border-slate-700 text-center">
+                  <p className="text-[10px] text-slate-500 font-black uppercase mb-1">รอดำเนินการ</p>
+                  <p className="text-xl font-black text-amber-500">{tasks.filter(t => t.status === 'PENDING').length}</p>
               </div>
-              <div className="w-20 h-20 rounded-full border-8 border-slate-800 flex items-center justify-center relative shadow-inner">
-                 <div className="absolute inset-0 rounded-full border-8 border-blue-600 border-t-transparent animate-spin-slow"></div>
-                 <CheckCircle size={32} className="text-blue-500" />
+              <div className="px-6 py-3 bg-slate-800 rounded-2xl border border-slate-700 text-center">
+                  <p className="text-[10px] text-slate-500 font-black uppercase mb-1">เสร็จสิ้นแล้ว</p>
+                  <p className="text-xl font-black text-emerald-500">{tasks.filter(t => t.status === 'COMPLETED').length}</p>
               </div>
           </div>
       </div>

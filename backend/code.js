@@ -1,13 +1,13 @@
 
 /**
- * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.6)
- * เพิ่มตาราง Customers
+ * NIT Consulting Solution LTD. - Google Sheets Database API (Backend V4.7)
+ * อัปเดต Schema Transactions
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const schema = {
-    'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod'],
+    'Transactions': ['id', 'date', 'description', 'category', 'amount', 'type', 'paymentMethod', 'customerName', 'customerId'],
     'Receipts': ['date', 'receiptId', 'payerName', 'amount', 'paymentMethod', 'notes'],
     'Products': ['id', 'code', 'name', 'cost', 'quantity', 'unit', 'minStockThreshold'],
     'Tasks': ['id', 'type', 'title', 'brand', 'model', 'description', 'startDate', 'endDate', 'location', 'assignee', 'status', 'estimatedCost', 'deposit', 'customer'],

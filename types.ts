@@ -15,6 +15,8 @@ export interface Transaction {
   amount: number;
   type: TransactionType;
   paymentMethod: PaymentMethod;
+  customerName?: string;
+  customerId?: string;
 }
 
 export interface Product {
